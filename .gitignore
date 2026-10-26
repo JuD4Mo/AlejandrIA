@@ -1,0 +1,19 @@
+# Datos originales y salidas reproducibles grandes
+data/raw/
+data/processed*/
+data/ml*/
+data/reports*/
+data/duckdb_tmp*/
+artifacts/
+backup/
+
+# Python y Jupyter
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Entornos locales
+.env
+.venv/
+venv/

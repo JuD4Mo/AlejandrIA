@@ -1,0 +1,4 @@
+{"user_id":"u1","book_id":"001","review_id":"r1","is_read":true,"rating":0,"date_added":"Wed May 09 09:33:44 -0700 2007","date_updated":"Wed May 09 09:33:44 -0700 2007","read_at":"","started_at":""}
+{"user_id":"u1","book_id":"001","review_id":"r2","is_read":true,"rating":5,"date_added":"Wed May 10 09:33:44 -0700 2007","date_updated":"Wed May 10 09:33:44 -0700 2007","read_at":"","started_at":""}
+{"user_id":"u2","book_id":"404","review_id":"r3","is_read":false,"rating":0,"date_added":"","date_updated":"","read_at":"","started_at":""}
+{"user_id":"u4","book_id":"002","review_id":"r_conflict","is_read":true,"rating":2,"date_added":"","date_updated":"","read_at":"","started_at":""}
