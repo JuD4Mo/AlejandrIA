@@ -1,6 +1,6 @@
-# Goodreads: preparación de datos y EDA
+# Biblioteca inteligente: datos, recomendación y persistencia
 
-Primera etapa académica del sistema de biblioteca inteligente. El alcance es la consolidación auditable de los subconjuntos Goodreads y su análisis exploratorio; no incluye modelos de recomendación, API ni interfaz.
+Proyecto académico de biblioteca inteligente con consolidación y EDA de Goodreads, recomendadores V2, API de inferencia y backend Go funcional sobre PostgreSQL.
 
 ## Estado actual
 
@@ -15,11 +15,13 @@ Implementado y validado:
 - Fusión híbrida calibrada solo con validación de catálogo completo; el peso activo de contenido es `0.30`.
 - Separación explícita entre el ranking híbrido del catálogo colaborativo y los libros `content_only` sin embedding colaborativo.
 - Evaluación reproducible, pruebas automatizadas, benchmark de memoria/latencia y notebooks académicos V2.
+- Backend Go con autenticación, roles, catálogo, inventario, circulación transaccional y personalización local; esquema versión 8 y pruebas con PostgreSQL real.
+- Integración Go → FastAPI V2 por preferencias y similitud, con correspondencias Goodreads exactas y disponibilidad bibliotecaria local.
 
 Pendiente antes de una integración de biblioteca:
 
-- Conectar disponibilidad, ejemplares, préstamos y reservas reales; Goodreads no representa disponibilidad física.
-- Definir autenticación, contrato HTTP, servicio de inferencia y almacenamiento/versionado externo de artefactos.
+- Evaluar una futura operación de puntuación de candidatos locales: no se simula filtrando el Top-K global. Goodreads no representa disponibilidad física.
+- Completar almacenamiento/versionado externo de artefactos y endurecimiento de autenticación para despliegue público.
 - Evaluar con reglas de negocio de la biblioteca, cold start real y un protocolo de producción independiente.
 - Publicar checkpoints y matrices grandes fuera de Git, por ejemplo mediante Git LFS, DVC o almacenamiento de objetos.
 
@@ -140,6 +142,81 @@ engine.recommend_content_only('usuario_existente', k=10)
 ```
 
 Los resultados híbridos llevan `score_scope='collaborative_catalog'`; los libros sin embedding llevan `score_scope='content_only_catalog'`, se ordenan solo por similitud de contenido y tienen `collaborative_score` nulo. Las dos listas no se mezclan porque sus scores responden a objetivos distintos.
+
+## API REST V2
+
+La API FastAPI mantiene una sola instancia de `RecommendationEngine` durante el lifespan del proceso. Carga los artefactos existentes V2 una vez al arrancar, sin entrenar modelos ni reconstruir TF-IDF. En CPU requiere aproximadamente 152 segundos y 3 GB de RAM; ejecute un único worker para no duplicar ese consumo.
+
+```bash
+conda activate goodreads-eda
+PYTHONPATH=src python -m api.run
+```
+
+La documentación OpenAPI está disponible en `http://127.0.0.1:8000/docs`. Configuración por entorno:
+
+- `RECOMMENDER_PROJECT_ROOT`: raíz del repositorio; por defecto se resuelve desde `src/api/config.py`.
+- `RECOMMENDER_MODEL_VERSION`: versión del modelo, `v2` por defecto.
+- `RECOMMENDER_DEVICE`: `cpu` por defecto; puede ser `cuda` si los artefactos y el entorno lo permiten.
+- `RECOMMENDER_HOST` y `RECOMMENDER_PORT`: dirección local, por defecto `127.0.0.1:8000`.
+- `RECOMMENDER_CORS_ORIGINS`: orígenes separados por comas; CORS queda desactivado si está vacío.
+
+Endpoints bajo `/api/v1`:
+
+- `GET /health/live`: el proceso HTTP responde, incluso si el motor no está listo.
+- `GET /health/ready`: indica si los artefactos se cargaron correctamente.
+- `POST /recommendations/preferences`: contenido para un usuario nuevo.
+- `GET /recommendations/similar/{book_id}`: similitud TF-IDF.
+- `GET /recommendations/hybrid/{goodreads_user_id}`: ranking híbrido del universo colaborativo.
+- `GET /recommendations/content-only/{goodreads_user_id}`: ranking independiente para libros sin embedding.
+- `GET /recommendations/collaborative/{goodreads_user_id}`: ranking colaborativo histórico.
+
+`limit` es opcional y debe estar entre 1 y 50. Ejemplos:
+
+```bash
+curl http://127.0.0.1:8000/api/v1/health/ready
+curl "http://127.0.0.1:8000/api/v1/recommendations/similar/6?limit=5"
+curl "http://127.0.0.1:8000/api/v1/recommendations/hybrid/GOODREADS_USER_ID?limit=10"
+curl -X POST http://127.0.0.1:8000/api/v1/recommendations/preferences \
+  -H 'content-type: application/json' \
+  -d '{"preferences":{"genres":["fantasy"],"authors":[],"keywords":["magic"]},"limit":10}'
+```
+
+Las respuestas contienen `book_id`, metadatos, `model`, `score` y, cuando corresponde, `score_scope`, `content_score` y `collaborative_score`. Los scores solo son comparables dentro del mismo método y `score_scope`; los identificadores son usuarios históricos de Goodreads, no futuros usuarios de PostgreSQL de la biblioteca.
+
+## PostgreSQL y backend Go: primera etapa
+
+La plantilla `alejandria-backend/` se reutiliza como monolito modular: PostgreSQL 17,
+17 tablas de dominio y ocho migraciones Tern. La API Chi incluye autenticación,
+roles, catálogo, ejemplares y circulación transaccional (solicitudes, entregas,
+devoluciones, renovaciones y reservas FIFO), además de preferencias, ratings e
+interacciones del lector. Las reservas tienen auditoría manual/system/unknown y
+los GET no modifican circulación. No ejecuta migraciones al arrancar.
+
+Contratos, bootstrap y pruebas: [`docs/backend/api.md`](docs/backend/api.md).
+Inventario para futuro C3: [`docs/backend/componentes_c3.md`](docs/backend/componentes_c3.md).
+
+El Compose también incluye FastAPI V2 CPU interno, un solo worker y artefactos
+montados en solo lectura. Go no espera su arranque para atender los otros módulos.
+Instrucciones: [`docs/docker-compose.md`](docs/docker-compose.md).
+Contrato y resultados reales: [`docs/backend/recomendaciones.md`](docs/backend/recomendaciones.md).
+
+Desde raíz, copiar `.env.example` a `.env` y reemplazar la contraseña local:
+
+```bash
+docker compose up -d --build
+docker compose exec backend /app/tern migrate
+curl --fail http://127.0.0.1:8080/health/ready
+docker compose down  # conserva el volumen persistente
+```
+
+Reversión explícita: `docker compose exec backend /app/tern migrate --destination VERSION`.
+`--destination 0` elimina el dominio; usar solo con una base desechable o respaldo adecuado.
+La única semilla son lector, bibliotecario y administrador, sin usuarios ni contraseñas.
+
+La documentación del esquema, estados, índices y reglas transaccionales pendientes
+está en [`docs/database/modelo_relacional.md`](docs/database/modelo_relacional.md).
+Configuración, ejecución Go directa y pruebas de reversión/persistencia:
+[`alejandria-backend/README.md`](alejandria-backend/README.md).
 
 ## Organización de salidas
 
