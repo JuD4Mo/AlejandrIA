@@ -1,0 +1,19 @@
+# Allowlist: el contexto no contiene datasets, modelos, credenciales ni notebooks.
+**
+!alejandria-backend/
+!alejandria-backend/**
+alejandria-backend/.env*
+alejandria-backend/.git/
+alejandria-backend/bin/
+!docker/
+!docker/requirements-recommendations.txt
+!docker/recommendations.Dockerfile
+!src/
+!src/api/
+!src/api/**
+!src/ml/
+!src/ml/__init__.py
+!src/ml/inference.py
+!src/ml/collaborative.py
+!src/ml/recommendation.py
+**/__pycache__/

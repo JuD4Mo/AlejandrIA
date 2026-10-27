@@ -1,0 +1,5 @@
+# Publicar FastAPI solo cuando se necesite depuración desde el host.
+services:
+  recommendations:
+    ports:
+      - "127.0.0.1:${RECOMMENDER_PORT:-8000}:8000"
