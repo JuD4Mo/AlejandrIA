@@ -1,0 +1,143 @@
+.catalog-page {
+  --catalog-paper: #e8e4d8;
+  --catalog-ink: #1b1a17;
+  --catalog-walnut: #4a2f20;
+  --catalog-brass: #b8923f;
+}
+
+.catalog-heading {
+  border-color: rgba(232, 228, 216, 0.22);
+}
+
+.catalog-heading h1 {
+  color: var(--catalog-paper);
+}
+
+.catalog-heading p {
+  max-width: 46rem;
+}
+
+.catalog-book-frieze {
+  position: relative;
+  display: flex;
+  min-height: 7.3rem;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(0.35rem, 1.5vw, 1rem);
+  margin: -1.15rem 0 1.7rem;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 0.6rem solid var(--catalog-walnut);
+  background: linear-gradient(180deg, transparent 0%, rgba(15, 42, 34, 0.5) 100%);
+  box-shadow: 0 10px 18px -18px rgba(0, 0, 0, 0.8);
+}
+
+.catalog-book-frieze span {
+  display: block;
+  width: clamp(1.25rem, 4vw, 2.4rem);
+  height: var(--spine-height, 5rem);
+  flex: 0 1 2.4rem;
+  border: 1px solid rgba(246, 215, 122, 0.32);
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+  background: var(--spine-color, #7a2430);
+  box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.1), inset -4px 0 0 rgba(0, 0, 0, 0.2);
+}
+
+.catalog-book-frieze span:nth-child(3n) { --spine-height: 4.4rem; --spine-color: #29405a; }
+.catalog-book-frieze span:nth-child(3n + 1) { --spine-height: 5.3rem; --spine-color: #6b292b; }
+.catalog-book-frieze span:nth-child(3n + 2) { --spine-height: 4.8rem; --spine-color: #315746; }
+.catalog-book-frieze span:nth-child(5n) { --spine-height: 5.65rem; --spine-color: #815b3d; }
+
+.catalog-search {
+  position: relative;
+  padding: 1.15rem;
+  background: var(--catalog-paper);
+  border: 1px solid rgba(27, 26, 23, 0.26);
+  border-top: 5px solid var(--catalog-brass);
+  box-shadow: 3px 4px 0 rgba(27, 26, 23, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.catalog-search::before {
+  content: "CATÁLOGO DE SALA";
+  position: absolute;
+  top: -1.55rem;
+  right: 0.15rem;
+  color: rgba(232, 228, 216, 0.62);
+  font-family: var(--font-ai);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+}
+
+.catalog-search button[type="submit"] {
+  min-height: 2.65rem;
+  border-bottom: 3px solid var(--catalog-walnut);
+}
+
+.catalog-search button[type="button"] {
+  min-height: 2.65rem;
+  color: var(--catalog-ink);
+  border-color: rgba(27, 26, 23, 0.32);
+}
+
+.catalog-empty {
+  position: relative;
+  min-height: 10rem;
+  padding-bottom: 2rem;
+  justify-content: center;
+  border-left: 5px solid var(--catalog-brass);
+  box-shadow: 3px 4px 0 rgba(27, 26, 23, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.catalog-empty::before {
+  content: "ESTANTE SIN TÍTULOS";
+  position: absolute;
+  top: 0.65rem;
+  right: 0.85rem;
+  color: rgba(27, 26, 23, 0.52);
+  font-family: var(--font-ai);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+
+.catalog-empty::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 0.55rem;
+  background: var(--catalog-walnut);
+  border-top: 2px solid var(--catalog-brass);
+}
+
+.catalog-empty h2 { color: var(--catalog-ink); }
+.catalog-empty p { color: rgba(27, 26, 23, 0.72); }
+.catalog-empty button {
+  color: var(--catalog-paper);
+  background: #17382e;
+  border-color: #17382e;
+}
+
+.catalog-page .shelf-wall {
+  border-color: #4a2f20;
+  background: linear-gradient(180deg, #342319 0%, #21160f 100%);
+  box-shadow: inset 0 0 0 1px rgba(246, 215, 122, 0.2), 0 18px 30px -22px rgba(0, 0, 0, 0.8);
+}
+
+.catalog-page .shelf-plank {
+  background: linear-gradient(180deg, #39271d 0%, #241810 100%);
+}
+
+.catalog-page .shelf-plank::after {
+  background: var(--catalog-brass);
+}
+
+@media (max-width: 639px) {
+  .catalog-book-frieze {
+    min-height: 6rem;
+    margin-top: -0.75rem;
+  }
+
+  .catalog-search { padding: 0.9rem; }
+  .catalog-search > div:last-child { grid-column: 1 / -1; }
+}
