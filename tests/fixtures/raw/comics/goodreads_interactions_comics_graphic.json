@@ -1,0 +1,3 @@
+{"user_id":"u1","book_id":"001","review_id":"r1","is_read":true,"rating":0,"date_added":"Wed May 09 09:33:44 -0700 2007","date_updated":"Wed May 09 09:33:44 -0700 2007","read_at":"","started_at":""}
+{"user_id":"u3","book_id":"003","review_id":"","is_read":false,"rating":3,"date_added":"","date_updated":"","read_at":"","started_at":""}
+{"user_id":"u4","book_id":"003","review_id":"r_conflict","is_read":true,"rating":3,"date_added":"","date_updated":"","read_at":"","started_at":""}

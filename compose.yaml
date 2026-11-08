@@ -1,0 +1,118 @@
+name: alejandria
+x-artifact-mount: &artifact-mount
+  type: bind
+  read_only: true
+  bind:
+    create_host_path: false
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-alejandria}
+      POSTGRES_USER: ${POSTGRES_USER:-alejandria}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD in .env}
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+  backend:
+    build:
+      context: .
+      dockerfile: alejandria-backend/Dockerfile
+    environment:
+      APP_PRIMARY_ENV: local
+      APP_SERVER_PORT: "8080"
+      APP_AUTH_SECRET: ${APP_AUTH_SECRET:?Define APP_AUTH_SECRET in .env}
+      APP_RECOMMENDATION_URL: ${APP_RECOMMENDATION_URL:-http://recommendations:8000}
+      APP_RECOMMENDATION_TIMEOUT: ${APP_RECOMMENDATION_TIMEOUT:-8s}
+      APP_DATABASE_HOST: postgres
+      APP_DATABASE_PORT: "5432"
+      APP_DATABASE_USER: ${POSTGRES_USER:-alejandria}
+      APP_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD in .env}
+      APP_DATABASE_NAME: ${POSTGRES_DB:-alejandria}
+      APP_DATABASE_SSL_MODE: disable
+      # La CLI oficial de Tern utiliza las variables estándar PostgreSQL.
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: ${POSTGRES_USER:-alejandria}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD in .env}
+      PGDATABASE: ${POSTGRES_DB:-alejandria}
+      PGSSLMODE: disable
+      PGTZ: UTC
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+  recommendations:
+    build:
+      context: .
+      dockerfile: docker/recommendations.Dockerfile
+    environment:
+      RECOMMENDER_PROJECT_ROOT: /srv/models
+      RECOMMENDER_DEVICE: cpu
+      RECOMMENDER_MODEL_VERSION: v2
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    expose:
+      - "8000"
+    mem_limit: ${RECOMMENDER_MEMORY_LIMIT:-8g}
+    volumes:
+      - <<: *artifact-mount
+        source: ./artifacts/v2/collaborative_mf/config.json
+        target: /srv/models/artifacts/v2/collaborative_mf/config.json
+      - <<: *artifact-mount
+        source: ./artifacts/v2/collaborative_mf/best_model.pt
+        target: /srv/models/artifacts/v2/collaborative_mf/best_model.pt
+      - <<: *artifact-mount
+        source: ./artifacts/v2/collaborative_mf/user_mapping.parquet
+        target: /srv/models/artifacts/v2/collaborative_mf/user_mapping.parquet
+      - <<: *artifact-mount
+        source: ./artifacts/v2/collaborative_mf/book_mapping.parquet
+        target: /srv/models/artifacts/v2/collaborative_mf/book_mapping.parquet
+      - <<: *artifact-mount
+        source: ./artifacts/v2/content_tfidf/tfidf_vectorizer.joblib
+        target: /srv/models/artifacts/v2/content_tfidf/tfidf_vectorizer.joblib
+      - <<: *artifact-mount
+        source: ./artifacts/v2/content_tfidf/book_tfidf.npz
+        target: /srv/models/artifacts/v2/content_tfidf/book_tfidf.npz
+      - <<: *artifact-mount
+        source: ./artifacts/v2/content_tfidf/content_book_mapping.parquet
+        target: /srv/models/artifacts/v2/content_tfidf/content_book_mapping.parquet
+      - <<: *artifact-mount
+        source: ./artifacts/v2/hybrid/config.json
+        target: /srv/models/artifacts/v2/hybrid/config.json
+      - <<: *artifact-mount
+        source: ./data/processed_v2/books.parquet
+        target: /srv/models/data/processed_v2/books.parquet
+      - <<: *artifact-mount
+        source: ./data/processed_v2/authors.parquet
+        target: /srv/models/data/processed_v2/authors.parquet
+      - <<: *artifact-mount
+        source: ./data/processed_v2/book_authors.parquet
+        target: /srv/models/data/processed_v2/book_authors.parquet
+      - <<: *artifact-mount
+        source: ./data/processed_v2/book_genres.parquet
+        target: /srv/models/data/processed_v2/book_genres.parquet
+      - <<: *artifact-mount
+        source: ./data/ml_v2/train.parquet
+        target: /srv/models/data/ml_v2/train.parquet
+    healthcheck:
+      test: ["CMD", "python", "-c", "import json,urllib.request; assert json.load(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready',timeout=3))['ready']"]
+      start_period: 300s
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+volumes:
+  postgres_data:
