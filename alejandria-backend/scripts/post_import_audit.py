@@ -28,6 +28,16 @@ from audit_catalog import operational_snapshot
 from import_catalog import atomic_json
 
 
+def verified_import_environment(conn):
+    """No heredar una CATALOG_DATABASE_URL ajena a la conexión test_* verificada."""
+    if not conn.info.dbname.startswith("test_"):
+        raise ValueError("Refusing non-test reimport destination")
+    environment = os.environ.copy()
+    environment["PGDATABASE"] = conn.info.dbname
+    environment["CATALOG_DATABASE_URL"] = psycopg.conninfo.make_conninfo(conn.info.dsn, password=conn.info.password)
+    return environment
+
+
 def run(args):
     report = {"status": "running", "checks": {}, "requests": [], "external_covers": []}
     def require(condition, name):
@@ -233,8 +243,7 @@ def run(args):
             payload.update(title="Curated audit title",description="Preserve manual correction")
             call("PUT",f"/books/{A}",staff,payload)
             before=operational_snapshot(conn)
-            environment=os.environ.copy();environment["PGDATABASE"]=conn.info.dbname
-            if os.getenv("CATALOG_TEST_DATABASE_URL"):environment["CATALOG_DATABASE_URL"]=os.environ["CATALOG_TEST_DATABASE_URL"]
+            environment=verified_import_environment(conn)
             subprocess.run([sys.executable,"src/data/import_catalog.py","--restart","--batch-size","5000","--state-file",str(args.state_file),"--report",str(args.reimport_report)],cwd=ROOT,env=environment,check=True)
             require(operational_snapshot(conn)==before, "ETL_preserves_users_loans_reservations_ratings_and_copies")
             require(conn.execute("SELECT title,description FROM books WHERE id=%s",(A,)).fetchone()==("Curated audit title","Preserve manual correction"), "ETL_preserves_curated_metadata")

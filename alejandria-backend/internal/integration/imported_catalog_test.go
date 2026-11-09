@@ -98,6 +98,11 @@ func TestImportedBookRecommendationAndCirculation(t *testing.T) {
 	if picked.BookID != id || picked.CopyID != copy || picked.UserID != f.b.ID {
 		t.Fatal("reserved import delivered incorrectly")
 	}
+	var overlapping int
+	must(t, f.pool.QueryRow(f.ctx, `SELECT count(*) FROM loans l JOIN reservations r ON r.copy_id=l.copy_id WHERE l.book_id=$1 AND l.returned_at IS NULL AND r.status='ready'`, id).Scan(&overlapping))
+	if overlapping != 0 {
+		t.Fatal("active loan overlaps a ready hold")
+	}
 	_, e = f.s.Return(f.ctx, f.staff, picked.ID)
 	must(t, e)
 }

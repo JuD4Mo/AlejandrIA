@@ -33,6 +33,9 @@ solicitudes y reservas requieren inventario físico registrado. PostgreSQL está
 versión 9 con índices de búsqueda y filtros. Mapeos, calidad, métricas y comandos:
 [docs/database/importacion_goodreads.md](docs/database/importacion_goodreads.md).
 
+Validación integral ejecutada, evidencia y riesgos pendientes:
+[docs/backend/validacion_post_importacion.md](docs/backend/validacion_post_importacion.md).
+
 ## Entorno
 
 Se requiere Anaconda o Miniconda. El entorno usa Python 3.11.
