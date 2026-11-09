@@ -2,10 +2,12 @@ package user
 
 import (
 	"context"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 	"strings"
 	"testing"
+	"time"
 )
 
 type fakeStore struct {
@@ -13,6 +15,31 @@ type fakeStore struct {
 	u         User
 	hash      string
 	bootstrap bool
+}
+
+func TestJWTRejectsExpiredMissingExpiryWrongIssuerAndAlgorithm(t *testing.T) {
+	secret := strings.Repeat("s", 32)
+	service := NewService(&fakeStore{u: User{ID: 1, Active: true}}, secret)
+	for _, tc := range []struct {
+		name, issuer string
+		expiry       *jwt.NumericDate
+		method       jwt.SigningMethod
+	}{
+		{"expired", "alejandria", jwt.NewNumericDate(time.Now().Add(-time.Hour)), jwt.SigningMethodHS256},
+		{"missing expiry", "alejandria", nil, jwt.SigningMethodHS256},
+		{"wrong issuer", "other", jwt.NewNumericDate(time.Now().Add(time.Hour)), jwt.SigningMethodHS256},
+		{"wrong algorithm", "alejandria", jwt.NewNumericDate(time.Now().Add(time.Hour)), jwt.SigningMethodHS384},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			token, err := jwt.NewWithClaims(tc.method, jwt.RegisteredClaims{Subject: "1", Issuer: tc.issuer, ExpiresAt: tc.expiry}).SignedString([]byte(secret))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err = service.Authenticate(context.Background(), token); err == nil {
+				t.Fatal("invalid JWT accepted")
+			}
+		})
+	}
 }
 
 func (f *fakeStore) Create(_ context.Context, p Register, h string, admin bool) (User, error) {

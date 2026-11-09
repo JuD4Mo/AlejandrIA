@@ -35,6 +35,13 @@ func (p *BookInput) Validate() error {
 type Book struct {
 	ID int64 `json:"id"`
 	BookInput
+	TotalCopies          int  `json:"total_copies"`
+	AvailableCopies      int  `json:"available_copies"`
+	HasCopies            bool `json:"has_copies"`
+	HasAvailableCopies   bool `json:"has_available_copies"`
+	LoanedCopies         int  `json:"loaned_copies"`
+	ReservedCopies       int  `json:"reserved_copies"`
+	NonCirculatingCopies int  `json:"non_circulating_copies"`
 }
 type NamedInput struct {
 	Name        string  `json:"name"`
@@ -61,4 +68,7 @@ type Filter struct {
 	AuthorID      int64
 	GenreID       int64
 	Limit, Offset int
+	AfterID       int64
+	HasCopies     *bool
+	Available     *bool
 }

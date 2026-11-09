@@ -15,7 +15,7 @@ Implementado y validado:
 - Fusión híbrida calibrada solo con validación de catálogo completo; el peso activo de contenido es `0.30`.
 - Separación explícita entre el ranking híbrido del catálogo colaborativo y los libros `content_only` sin embedding colaborativo.
 - Evaluación reproducible, pruebas automatizadas, benchmark de memoria/latencia y notebooks académicos V2.
-- Backend Go con autenticación, roles, catálogo, inventario, circulación transaccional y personalización local; esquema versión 8 y pruebas con PostgreSQL real.
+- Backend Go con autenticación, roles, catálogo, inventario, circulación transaccional y personalización local; esquema versión 9 y pruebas con PostgreSQL real.
 - Integración Go → FastAPI V2 por preferencias y similitud, con correspondencias Goodreads exactas y disponibilidad bibliotecaria local.
 
 Pendiente antes de una integración de biblioteca:
@@ -24,6 +24,14 @@ Pendiente antes de una integración de biblioteca:
 - Completar almacenamiento/versionado externo de artefactos y endurecimiento de autenticación para despliegue público.
 - Evaluar con reglas de negocio de la biblioteca, cold start real y un protocolo de producción independiente.
 - Publicar checkpoints y matrices grandes fuera de Git, por ejemplo mediante Git LFS, DVC o almacenamiento de objetos.
+
+## Catálogo inicial en PostgreSQL
+
+La importación explícita desde Parquet ya cargó 931.046 libros Goodreads, sin crear
+ejemplares ni usuarios. Los registros bibliográficos se consultan y recomiendan;
+solicitudes y reservas requieren inventario físico registrado. PostgreSQL está en
+versión 9 con índices de búsqueda y filtros. Mapeos, calidad, métricas y comandos:
+[docs/database/importacion_goodreads.md](docs/database/importacion_goodreads.md).
 
 ## Entorno
 
@@ -186,7 +194,7 @@ Las respuestas contienen `book_id`, metadatos, `model`, `score` y, cuando corres
 ## PostgreSQL y backend Go: primera etapa
 
 La plantilla `alejandria-backend/` se reutiliza como monolito modular: PostgreSQL 17,
-17 tablas de dominio y ocho migraciones Tern. La API Chi incluye autenticación,
+17 tablas de dominio y nueve migraciones Tern. La API Chi incluye autenticación,
 roles, catálogo, ejemplares y circulación transaccional (solicitudes, entregas,
 devoluciones, renovaciones y reservas FIFO), además de preferencias, ratings e
 interacciones del lector. Las reservas tienen auditoría manual/system/unknown y

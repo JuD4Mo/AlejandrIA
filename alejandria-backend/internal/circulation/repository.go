@@ -64,6 +64,14 @@ func (t *transaction) createRequest(reader int64) (int64, error) {
 	return id, e
 }
 
+// Se consulta bajo el bloqueo del libro, compartido con las altas de inventario.
+// Un ejemplar prestado sigue existiendo y permite reservar; disponibilidad no es existencia.
+func (t *transaction) hasPhysicalCopies() (bool, error) {
+	var exists bool
+	err := t.tx.QueryRow(t.ctx, `SELECT EXISTS(SELECT 1 FROM book_copies WHERE book_id=$1)`, t.book).Scan(&exists)
+	return exists, err
+}
+
 func (t *transaction) cancelRequest(id int64) error {
 	_, e := t.tx.Exec(t.ctx, `UPDATE loan_requests SET status='cancelled' WHERE id=$1`, id)
 	return e
@@ -125,7 +133,7 @@ func (t *transaction) pendingRequest(reader int64) (int64, error) {
 func (t *transaction) checkCopy(copy, reservation int64) error {
 	var status string
 	var book int64
-	e := t.tx.QueryRow(t.ctx, `SELECT book_id,status FROM book_copies WHERE id=$1 FOR UPDATE`, copy).Scan(&book, &status)
+	e := t.tx.QueryRow(t.ctx, `SELECT book_id,status FROM book_copies WHERE id=$1 AND book_id=$2 FOR UPDATE`, copy, t.book).Scan(&book, &status)
 	if e != nil {
 		return e
 	}
@@ -215,7 +223,8 @@ func (t *transaction) decideRenewal(q Renewal, staff int64, approve bool, note s
 	return nil
 }
 func (r *Repository) actionableBooks(ctx context.Context) ([]int64, error) {
-	rows, e := r.pool.Query(ctx, `SELECT b.id FROM books b WHERE EXISTS(SELECT 1 FROM reservations r WHERE r.book_id=b.id AND r.status='ready' AND r.pickup_expires_at<=clock_timestamp()) OR (EXISTS(SELECT 1 FROM reservations r JOIN users u ON u.id=r.user_id WHERE r.book_id=b.id AND r.status='waiting' AND u.is_active) AND EXISTS(SELECT 1 FROM book_copies c WHERE c.book_id=b.id AND c.status='circulating' AND NOT EXISTS(SELECT 1 FROM loans l WHERE l.copy_id=c.id AND l.returned_at IS NULL) AND NOT EXISTS(SELECT 1 FROM reservations r WHERE r.copy_id=c.id AND r.status='ready'))) ORDER BY b.id LIMIT 100`)
+	// Parte de la cola activa, no de los cientos de miles de libros bibliográficos.
+	rows, e := r.pool.Query(ctx, `SELECT DISTINCT r.book_id FROM reservations r WHERE (r.status='ready' AND r.pickup_expires_at<=now()) OR (r.status='waiting' AND EXISTS(SELECT 1 FROM users u WHERE u.id=r.user_id AND u.is_active) AND EXISTS(SELECT 1 FROM book_copies c WHERE c.book_id=r.book_id AND c.status='circulating' AND NOT EXISTS(SELECT 1 FROM loans l WHERE l.copy_id=c.id AND l.returned_at IS NULL) AND NOT EXISTS(SELECT 1 FROM reservations held WHERE held.copy_id=c.id AND held.status='ready'))) ORDER BY r.book_id LIMIT 100`)
 	if e != nil {
 		return nil, e
 	}

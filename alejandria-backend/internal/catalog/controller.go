@@ -34,6 +34,28 @@ func (c *Controller) Books(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	f := Filter{Title: r.URL.Query().Get("title"), Limit: p.Limit, Offset: p.Offset}
+	if v := r.URL.Query().Get("after_id"); v != "" {
+		id, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || id <= 0 || p.Offset != 0 {
+			web.Fail(w, r, errs.NewBadRequestError("after_id must be positive and cannot be combined with offset", false, nil, nil, nil))
+			return
+		}
+		f.AfterID = id
+	}
+	for _, name := range []string{"has_copies", "available"} {
+		if v := r.URL.Query().Get(name); v != "" {
+			value, err := strconv.ParseBool(v)
+			if err != nil {
+				web.Fail(w, r, errs.NewBadRequestError("invalid inventory filter", false, nil, nil, nil))
+				return
+			}
+			if name == "has_copies" {
+				f.HasCopies = &value
+			} else {
+				f.Available = &value
+			}
+		}
+	}
 	for _, name := range []string{"author_id", "genre_id"} {
 		if v := r.URL.Query().Get(name); v != "" {
 			n, e := strconv.ParseInt(v, 10, 64)
@@ -53,7 +75,12 @@ func (c *Controller) Books(w http.ResponseWriter, r *http.Request) {
 		web.Fail(w, r, e)
 		return
 	}
-	web.JSON(w, 200, map[string]any{"data": b, "pagination": p})
+	var next *int64
+	if len(b) == p.Limit {
+		last := b[len(b)-1].ID
+		next = &last
+	}
+	web.JSON(w, 200, map[string]any{"data": b, "pagination": p, "next_after_id": next})
 }
 func (c *Controller) Book(w http.ResponseWriter, r *http.Request) {
 	id, e := web.ID(r, "id")

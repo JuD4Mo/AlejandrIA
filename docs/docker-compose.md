@@ -82,7 +82,7 @@ go vet ./...
 python -m pytest -q
 ```
 
-Integración en una base test_* desechable migrada a 8:
+Integración en una base test_* desechable migrada a 9:
 
 ```bash
 docker compose exec postgres createdb -U alejandria test_recommendation

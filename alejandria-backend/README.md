@@ -41,7 +41,7 @@ docker compose exec -e PGDATABASE=prueba_migraciones backend /app/tern migrate -
 
 Tern registra versión, usa transacciones por migración y advisory locks. El arranque
 de API no migra. Salud comprueba proceso/conexión, no versión del esquema: aplicar
-migraciones hasta versión 8 antes de usar endpoints de negocio. Reversiones eliminan las tablas
+migraciones hasta versión 9 antes de usar endpoints de negocio. Reversiones eliminan las tablas
 de la versión y sus datos; nunca se ejecutan automáticamente.
 
 ## Ejecución Go fuera de Docker
@@ -121,6 +121,19 @@ Consulta los contratos completos y ejemplos curl en `docs/backend/api.md`.
 
 La iteración reutiliza `errs`/`sqlerr` y elimina `web.Error`. La paginación está
 centralizada en `pkg/meta`, conservando contratos limit/offset existentes.
+
+## Importación bibliográfica Goodreads
+
+El catálogo inicial ya contiene 931.046 libros, 268.308 autores, 458.726 obras y diez
+géneros, importados desde Parquet sin ejemplares ni cuentas. El proceso es externo
+y explícito: `src/data/import_catalog.py`, con COPY, checkpoints y UPSERT conservador.
+No se ejecuta con el arranque ni con Tern. Migración 009 añade índices de búsqueda.
+
+Catálogo admite has_copies, available y after_id; las respuestas distinguen conteos
+de ejemplares disponibles, prestados, reservados y no circulantes. Sin ejemplares,
+Request/Reserve responden 409; consultar, recomendar y calificar sigue permitido.
+
+Proceso, comandos y resultados: [importacion_goodreads.md](../docs/database/importacion_goodreads.md).
 
 ## Recomendaciones V2
 

@@ -21,7 +21,7 @@ BEGIN
 END $$;
 SQL
 before=$(test_sql <<< "SELECT md5(jsonb_agg(to_jsonb(r) ORDER BY id)::text) FROM reservations r;")
-migrate
+migrate --destination 8
 after=$(test_sql <<< "SELECT md5(jsonb_agg(to_jsonb(r)-'assignment_origin' ORDER BY id)::text) FROM reservations r;")
 test "$before" = "$after"
 test_sql <<< "DO \$\$ BEGIN ASSERT (SELECT count(*)=1 FROM reservations WHERE assignment_origin='unknown' AND assigned_by IS NOT NULL); END \$\$;"
@@ -29,7 +29,7 @@ test_sql < alejandria-backend/internal/database/tests/reservation_audit_v8.sql
 migrate --destination 7
 after=$(test_sql <<< "SELECT md5(jsonb_agg(to_jsonb(r) ORDER BY id)::text) FROM reservations r;")
 test "$before" = "$after"
-migrate
+migrate --destination 8
 test_sql <<'SQL'
 DO $$ DECLARE u BIGINT; b BIGINT; c BIGINT;
 BEGIN

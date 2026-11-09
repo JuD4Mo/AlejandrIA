@@ -81,6 +81,9 @@ func (s *Service) Request(ctx context.Context, actor user.User, book int64) (int
 		if e := t.eligible(actor.ID); e != nil {
 			return e
 		}
+		if e := t.requirePhysicalCopies(); e != nil {
+			return e
+		}
 		var e error
 		id, e = t.createRequest(actor.ID)
 		return e
@@ -100,6 +103,9 @@ func (s *Service) Reserve(ctx context.Context, actor user.User, book int64) (Res
 		if !active {
 			return errs.NewConflictError("reader is inactive", false)
 		}
+		if e := t.requirePhysicalCopies(); e != nil {
+			return e
+		}
 		id, e = t.createReservation(actor.ID)
 		if e != nil {
 			return e
@@ -110,6 +116,17 @@ func (s *Service) Reserve(ctx context.Context, actor user.User, book int64) (Res
 		return Reservation{}, e
 	}
 	return s.repo.reservation(ctx, id)
+}
+
+func (t *transaction) requirePhysicalCopies() error {
+	exists, err := t.hasPhysicalCopies()
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return errs.NewConflictError("book has no physical copies registered", false)
+	}
+	return nil
 }
 func (s *Service) Deliver(ctx context.Context, actor user.User, request, copy int64) (Loan, error) {
 	if e := requireStaff(actor); e != nil {

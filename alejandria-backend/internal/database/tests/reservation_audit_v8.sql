@@ -7,7 +7,7 @@ DECLARE
     c BIGINT;
     r BIGINT;
 BEGIN
-    ASSERT (SELECT version=8 FROM schema_version), 'Expected schema 8';
+    ASSERT (SELECT version>=8 FROM schema_version), 'Expected schema >=8';
     INSERT INTO users(email,display_name,password_hash) VALUES('audit8@synthetic.invalid','Test','synthetic') RETURNING id INTO u;
     INSERT INTO books(title) VALUES('Audit test') RETURNING id INTO b;
     INSERT INTO book_copies(book_id,inventory_code) VALUES(b,'AUDIT8-SYNTHETIC') RETURNING id INTO c;

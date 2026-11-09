@@ -58,8 +58,8 @@ func setup(t *testing.T) *fixture {
 	}
 	var version int
 	must(t, p.QueryRow(ctx, `SELECT version FROM schema_version`).Scan(&version))
-	if version != 8 {
-		t.Fatalf("expected schema 8, got %d", version)
+	if version != 9 {
+		t.Fatalf("expected schema 9, got %d", version)
 	}
 	f := &fixture{pool: p, ctx: ctx, s: circulation.NewService(circulation.NewRepository(p))}
 	f.staff = f.newUser(t, "administrador")

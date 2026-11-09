@@ -105,6 +105,19 @@ límites de préstamos mediante triggers.
 
 ## Migraciones y operación
 
+### Versión 9 — búsqueda del catálogo importado
+
+`009_catalog_search.sql` instala pg_trgm y añade GIN sobre books.title para ILIKE
+parcial e índices compuestos autor/libro y género/libro. No cambia columnas ni
+tablas y no modifica 001–008. Se ejecutó antes de la carga completa desde Parquet.
+El ETL es independiente del migrador y no crea ejemplares ni usuarios históricos.
+Resultado y procedimiento: [importacion_goodreads.md](importacion_goodreads.md).
+
+Circulación exige existencia de inventario al registrar solicitudes y reservas;
+el control está en la transacción Go bajo bloqueo del libro. No es un CHECK que
+consulte otras tablas. Sigue siendo posible reservar cuando los ejemplares están
+prestados. Todos los conteos de disponibilidad son calculados, no columnas nuevas.
+
 ### Versión 8 — auditoría de reservas y personalización HTTP
 
 `008_reservation_audit.sql` sustituye únicamente `reservations_check` y añade:
@@ -177,7 +190,7 @@ Desde raíz, copiar `.env.example` a `.env` y definir contraseña local:
 ```bash
 docker compose up -d --build
 docker compose exec backend /app/tern migrate
-docker compose exec backend /app/tern migrate  # no-op si versión 8
+docker compose exec backend /app/tern migrate  # no-op si versión 9
 curl --fail http://127.0.0.1:8080/health/ready
 docker compose stop
 docker compose start

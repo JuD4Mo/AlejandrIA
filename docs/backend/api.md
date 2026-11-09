@@ -97,6 +97,28 @@ Ejemplo de alta bibliográfica (no importa Goodreads):
 
 ## Circulación y transiciones
 
+### Catálogo inicial Goodreads y consultas a escala
+
+El catálogo ya contiene 931.046 registros Goodreads importados desde Parquet.
+No implica que haya ejemplares físicos. Se conservan los IDs externos como strings.
+Proceso, calidad, reanudación y cifras: [importacion_goodreads.md](../database/importacion_goodreads.md).
+
+`GET /books` mantiene limit/offset y admite `has_copies=true|false`,
+`available=true|false` y `after_id=<id>` (este último exige offset=0). La respuesta
+añade `next_after_id`, nullable. Para recorrer muchos libros, usar cursor en lugar
+de offsets profundos; la página siguiente de un cursor puede estar vacía.
+
+Lista y detalle de libro añaden campos derivados: total_copies, available_copies,
+has_copies, has_available_copies, loaned_copies, reserved_copies y
+non_circulating_copies. Distinguen registro sin inventario, disponibilidad, préstamo,
+retención ready y condiciones maintenance/lost/withdrawn. No se guarda available.
+
+Request y Reserve devuelven 409 si no existe ningún book_copy del libro. El chequeo
+se realiza dentro del bloqueo transaccional del libro, compartido con altas de inventario.
+Ejemplares prestados sí permiten reservas FIFO; una copia temporalmente ocupada no
+se confunde con ausencia. Al entregar se sigue exigiendo un ejemplar elegible.
+Ratings, interacciones y recomendaciones siguen permitidos para libros sin copias.
+
 - Solicitud: pending → approved (solo entrega), rejected o cancelled. No ocupa
   ejemplar y no cuenta como préstamo activo. Índice 007 impide pending duplicados.
 - Préstamo: activo mientras returned_at sea null, aun vencido. Entrega de 30 días
@@ -207,7 +229,7 @@ exactly-once. SQL ejecutado fuera de estos servicios puede saltarse reglas entre
 go test ./...
 go vet ./...
 go test -race ./...
-# Sobre una base desechable test_* ya migrada a 8:
+# Sobre una base desechable test_* ya migrada a 9:
 TEST_DATABASE_URL='postgres://USUARIO:CLAVE@localhost:5432/test_backend?sslmode=disable' \
   go test -tags=integration -race -count=1 -v ./internal/integration
 ```
