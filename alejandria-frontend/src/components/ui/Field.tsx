@@ -67,12 +67,12 @@ export function Field({
     <div className={cn("space-y-1.5", className)}>
       <LabelPrimitive.Root
         htmlFor={id}
-        className="flex items-baseline justify-between gap-3 text-[0.82rem] font-semibold text-ink"
+        className="flex items-baseline justify-between gap-3 text-[0.82rem] font-semibold text-fg"
       >
         <span>
           {label}
           {required ? (
-            <span className="ml-1 text-oxblood" aria-hidden="true">
+            <span className="ml-1 text-danger" aria-hidden="true">
               *
             </span>
           ) : null}
@@ -80,12 +80,12 @@ export function Field({
       </LabelPrimitive.Root>
       {children}
       {hint ? (
-        <p className="text-[0.78rem] leading-snug text-[rgba(243,240,250,0.68)]">
+        <p className="text-[0.78rem] leading-snug text-fg-muted">
           {hint}
         </p>
       ) : null}
       {error ? (
-        <p className="text-[0.8rem] font-medium text-oxblood" role="alert">
+        <p className="text-[0.8rem] font-medium text-danger" role="alert">
           {error}
         </p>
       ) : null}

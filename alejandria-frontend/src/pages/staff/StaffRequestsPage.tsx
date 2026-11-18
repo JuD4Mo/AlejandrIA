@@ -11,8 +11,8 @@ import { LoadMore } from "@/components/LoadMore";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Field, Select, Textarea } from "@/components/ui/Field";
-import { BookLabel, PageLoader } from "@/components/ui/Loading";
+import { Field, Select, Textarea, inputClass } from "@/components/ui/Field";
+import { BookLabel, PageLoader, ReaderLabel } from "@/components/ui/Loading";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -97,7 +97,7 @@ export function StaffRequestsPage() {
       {message ? (
         <p
           role="status"
-          className="mb-4 border-l-2 border-[#637a68] bg-[rgba(51,69,59,0.08)] px-4 py-3 text-[0.86rem] text-[#2c4034]"
+          className="notice notice--success mb-4"
         >
           {message}
         </p>
@@ -108,7 +108,7 @@ export function StaffRequestsPage() {
         </div>
       ) : null}
 
-      <div className="mb-4 flex flex-wrap items-end gap-3 border border-[rgba(243,240,250,0.14)] bg-[rgba(21,21,30,0.6)] p-3">
+      <div className="mb-4 flex flex-wrap items-end gap-3 toolbar-panel p-3">
         <Field label={es.circulation.statusFilter} htmlFor="request-filter" className="min-w-40">
           <Select
             id="request-filter"
@@ -127,10 +127,10 @@ export function StaffRequestsPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={es.staff.queueSearchPlaceholder}
-            className="w-full rounded-xs border border-[rgba(243,240,250,0.28)] bg-[#101018] px-3 py-2 text-ink placeholder:text-[rgba(243,240,250,0.44)] focus:border-oxblood focus:bg-[#1c1c28]"
+            className={inputClass}
           />
         </Field>
-        <p className="m-0 pb-2 text-[0.75rem] text-[rgba(243,240,250,0.55)]">
+        <p className="m-0 pb-2 text-[0.75rem] text-fg-subtle">
           {es.staff.queueNote}
         </p>
       </div>
@@ -146,22 +146,19 @@ export function StaffRequestsPage() {
         />
       ) : (
         <>
-          <div className="divide-y divide-[rgba(243,240,250,0.12)] border border-[rgba(243,240,250,0.14)]">
+          <div className="divide-y divide-line border border-line">
             {visible.map((row) => (
               <article key={row.id} className="p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="m-0 text-[0.72rem] font-semibold text-[rgba(243,240,250,0.52)]">
+                    <p className="m-0 text-[0.72rem] font-semibold text-fg-subtle">
                       {es.circulation.requestId.replace("{{id}}", String(row.id))}
                     </p>
                     <h2 className="mt-0.5 font-display text-xl font-semibold">
                       <BookLabel bookId={row.book_id} />
                     </h2>
-                    <p className="m-0 text-[0.8rem] text-[rgba(243,240,250,0.62)]">
-                      {es.circulation.unknownReader.replace(
-                        "{{id}}",
-                        String(row.user_id),
-                      )}{" "}
+                    <p className="m-0 text-[0.8rem] text-fg-subtle">
+                      <ReaderLabel userId={row.user_id} />{" "}
                       · {formatDateTime(row.created_at)}
                     </p>
                   </div>
@@ -180,7 +177,7 @@ export function StaffRequestsPage() {
                   </StatusBadge>
                 </div>
                 {row.decision_note ? (
-                  <p className="mt-1 text-[0.8rem] text-[rgba(243,240,250,0.66)]">
+                  <p className="mt-1 text-[0.8rem] text-fg-muted">
                     {es.circulation.decisionNote}: {row.decision_note}
                   </p>
                 ) : null}
@@ -208,7 +205,7 @@ export function StaffRequestsPage() {
                 loading={query.isFetchingNextPage}
                 label={es.staff.queueLoadMore}
               />
-              <p className="mt-2 text-center text-[0.75rem] text-[rgba(243,240,250,0.52)]">
+              <p className="mt-2 text-center text-[0.75rem] text-fg-subtle">
                 {es.staff.queueMorePages}
               </p>
             </>
@@ -357,7 +354,7 @@ function DeliverDialog({
     >
       {row ? (
         <div className="space-y-4">
-          <p className="m-0 text-[0.9rem] text-[rgba(243,240,250,0.72)]">
+          <p className="m-0 text-[0.9rem] text-fg-muted">
             <BookLabel bookId={row.book_id} />
           </p>
           {copiesQuery.isPending ? (
@@ -365,7 +362,7 @@ function DeliverDialog({
           ) : copiesQuery.isError ? (
             <ErrorState error={copiesQuery.error} compact />
           ) : eligible.length === 0 ? (
-            <p className="m-0 text-[0.86rem] text-[rgba(243,240,250,0.66)]">
+            <p className="m-0 text-[0.86rem] text-fg-muted">
               {es.staff.deliverNoCopies}
             </p>
           ) : (

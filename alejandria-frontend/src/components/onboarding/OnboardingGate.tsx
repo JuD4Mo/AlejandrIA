@@ -21,7 +21,7 @@ function OnboardingLoading() {
         <div className="mx-auto h-72 w-full">
           <Constellation connected={0} labels={nodeLabels} phase="idle" />
         </div>
-        <p role="status" className="mt-2 text-[0.88rem] text-[rgba(243,240,250,0.62)]">
+        <p role="status" className="mt-2 text-[0.88rem] text-fg-subtle">
           {es.onboarding.loading}
         </p>
       </div>

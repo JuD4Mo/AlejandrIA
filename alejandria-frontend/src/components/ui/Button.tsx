@@ -14,11 +14,11 @@ const variants: Record<Variant, string> = {
   primary:
     "bg-brass text-ink border border-brass hover:bg-[#d0ad60] invalid:opacity-60",
   secondary:
-    "bg-transparent text-ficha border border-[rgba(232,228,216,0.34)] hover:border-lamp hover:bg-[rgba(232,228,216,0.1)]",
+    "btn-secondary bg-transparent text-ficha border border-[rgba(232,228,216,0.34)] hover:border-lamp hover:bg-[rgba(232,228,216,0.1)]",
   ghost:
-    "bg-transparent text-ficha border border-transparent hover:bg-[rgba(232,228,216,0.1)]",
+    "btn-ghost bg-transparent text-ficha border border-transparent hover:bg-[rgba(232,228,216,0.1)]",
   danger:
-    "bg-transparent text-overdue-red border border-[rgba(166,38,43,0.5)] hover:bg-[rgba(166,38,43,0.1)]",
+    "bg-transparent text-danger border border-danger/50 hover:bg-danger/10",
   brass:
     "bg-brass text-ink border border-brass hover:bg-[#d0ad60]",
 };

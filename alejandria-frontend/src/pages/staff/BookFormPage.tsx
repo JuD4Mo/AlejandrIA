@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { ApiError } from "@/api/client";
@@ -10,18 +10,21 @@ import type { BookInput } from "@/api/types";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { EntityLookup } from "@/components/EntityLookup";
+import { Field, Input, Textarea } from "@/components/ui/Field";
 import { PageLoader } from "@/components/ui/Loading";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { es } from "@/i18n/es";
-import { mapApiError } from "@/lib/errors";
+import { genreLabel } from "@/lib/genres";
 
 const digits = (value: string) => /^\d+$/.test(value.trim());
 
 const schema = z.object({
   title: z.string().trim().min(1, es.staff.bookForm.titleRequired),
-  work_id: z.string(),
+  work_id: z
+    .string()
+    .refine((value) => value.trim() === "" || (digits(value) && Number(value) > 0), es.staff.bookForm.workIdInvalid),
   goodreads_book_id: z
     .string()
     .refine((value) => value === "" || digits(value), "Usa solo dígitos."),
@@ -73,16 +76,6 @@ export function BookFormPage() {
     enabled: editing && Number.isInteger(bookId) && (bookId as number) > 0,
     retry: 0,
   });
-  const worksQuery = useQuery({
-    queryKey: ["named", "works", "options"],
-    queryFn: () => endpoints.named.list("works", { limit: 100 }),
-    staleTime: 5 * 60_000,
-  });
-  const authorsQuery = useQuery({
-    queryKey: ["named", "authors", "options"],
-    queryFn: () => endpoints.named.list("authors", { limit: 100 }),
-    staleTime: 5 * 60_000,
-  });
   const genresQuery = useQuery({
     queryKey: ["named", "genres", "options"],
     queryFn: () => endpoints.named.list("genres", { limit: 100 }),
@@ -93,6 +86,7 @@ export function BookFormPage() {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -110,6 +104,8 @@ export function BookFormPage() {
       image_url: "",
     },
   });
+
+  const workId = useWatch({ control, name: "work_id" });
 
   useEffect(() => {
     const book = bookQuery.data;
@@ -157,7 +153,7 @@ export function BookFormPage() {
       (row) => row.author_id.trim() !== "" || row.role.trim() !== "",
     );
     for (const row of rows) {
-      if (!row.author_id || Number(row.author_id) <= 0) {
+      if (!digits(row.author_id) || Number(row.author_id) <= 0) {
         setFormError(es.staff.bookForm.authorIdInvalid);
         return;
       }
@@ -234,15 +230,19 @@ export function BookFormPage() {
               />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={es.staff.bookForm.workLabel} htmlFor="book-work">
-                <Select id="book-work" {...register("work_id")}>
-                  <option value="">{es.staff.bookForm.workPlaceholder}</option>
-                  {(worksQuery.data?.data ?? []).map((work) => (
-                    <option key={work.id} value={work.id}>
-                      {work.value}
-                    </option>
-                  ))}
-                </Select>
+              <Field
+                label={es.staff.bookForm.workIdLabel}
+                htmlFor="book-work"
+                hint={es.staff.bookForm.workIdHint}
+                error={errors.work_id?.message}
+              >
+                <EntityLookup
+                  id="book-work"
+                  kind="works"
+                  lookupValue={workId}
+                  placeholder={es.staff.bookForm.workPlaceholder}
+                  {...register("work_id")}
+                />
               </Field>
               <Field
                 label={es.staff.bookForm.goodreadsLabel}
@@ -328,7 +328,7 @@ export function BookFormPage() {
             </Button>
           </div>
           {authors.length === 0 ? (
-            <p className="m-0 text-[0.86rem] text-[rgba(243,240,250,0.62)]">
+            <p className="m-0 text-[0.86rem] text-fg-subtle">
               {es.staff.bookForm.noAuthors}
             </p>
           ) : (
@@ -336,14 +336,17 @@ export function BookFormPage() {
               {authors.map((row, index) => (
                 <div
                   key={index}
-                  className="grid gap-3 border border-[rgba(243,240,250,0.12)] p-3 sm:grid-cols-[1fr_1fr_auto]"
+                  className="grid gap-3 border border-line p-3 sm:grid-cols-[1fr_1fr_auto]"
                 >
                   <Field
                     label={es.staff.bookForm.authorIdLabel}
                     htmlFor={`book-author-${index}`}
+                    hint={es.staff.bookForm.authorIdHint}
                   >
-                    <Select
+                    <EntityLookup
                       id={`book-author-${index}`}
+                      kind="authors"
+                      lookupValue={row.author_id}
                       value={row.author_id}
                       onChange={(event) =>
                         setAuthors((rows) =>
@@ -354,14 +357,7 @@ export function BookFormPage() {
                           ),
                         )
                       }
-                    >
-                      <option value="">—</option>
-                      {(authorsQuery.data?.data ?? []).map((author) => (
-                        <option key={author.id} value={author.id}>
-                          {author.value} (#{author.id})
-                        </option>
-                      ))}
-                    </Select>
+                    />
                   </Field>
                   <Field
                     label={es.staff.bookForm.authorRoleLabel}
@@ -404,13 +400,13 @@ export function BookFormPage() {
           <h2 className="font-display text-2xl font-semibold">
             {es.staff.bookForm.genresLabel}
           </h2>
-          <p className="mt-1 text-[0.82rem] text-[rgba(243,240,250,0.62)]">
+          <p className="mt-1 text-[0.82rem] text-fg-subtle">
             {es.staff.bookForm.genresHint}
           </p>
           {genresQuery.isPending ? (
             <PageLoader label={es.common.loading} />
           ) : (genresQuery.data?.data ?? []).length === 0 ? (
-            <p className="mt-3 text-[0.86rem] text-[rgba(243,240,250,0.62)]">
+            <p className="mt-3 text-[0.86rem] text-fg-subtle">
               {es.staff.bookForm.noGenres}
             </p>
           ) : (
@@ -423,7 +419,7 @@ export function BookFormPage() {
                     className={
                       checked
                         ? "flex cursor-pointer items-center gap-2 border border-[rgba(107,32,36,0.34)] bg-[rgba(107,32,36,0.06)] px-3 py-2 text-[0.86rem]"
-                        : "flex cursor-pointer items-center gap-2 border border-[rgba(243,240,250,0.16)] px-3 py-2 text-[0.86rem] hover:border-[rgba(243,240,250,0.3)]"
+                        : "flex cursor-pointer items-center gap-2 border border-line px-3 py-2 text-[0.86rem] hover:border-line-strong"
                     }
                   >
                     <input
@@ -439,7 +435,7 @@ export function BookFormPage() {
                       }
                       className="size-4 accent-[#6b2024]"
                     />
-                    {genre.value}
+                    {genreLabel(genre.value)}
                   </label>
                 );
               })}
@@ -450,14 +446,14 @@ export function BookFormPage() {
         {formError ? (
           <p
             role="alert"
-            className="border-l-2 border-oxblood bg-[rgba(107,32,36,0.06)] px-4 py-3 text-[0.86rem] text-oxblood"
+            className="notice notice--error"
           >
             {formError}
           </p>
         ) : null}
         {submitError ? <ErrorState error={submitError} compact /> : null}
 
-        <div className="flex flex-wrap justify-end gap-2 border-t border-[rgba(243,240,250,0.16)] pt-5">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-line pt-5">
           <Button asChild variant="secondary">
             <Link to="/staff/catalog">{es.common.cancel}</Link>
           </Button>
@@ -465,11 +461,7 @@ export function BookFormPage() {
             {editing ? es.staff.bookForm.saveEdit : es.staff.bookForm.saveNew}
           </Button>
         </div>
-        {mutation.isError ? (
-          <p className="text-right text-[0.8rem] text-oxblood">
-            {mapApiError(mutation.error).message}
-          </p>
-        ) : null}
+
       </form>
     </div>
   );

@@ -23,8 +23,10 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Stars } from "@/components/ui/Stars";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useFavorites } from "@/hooks/useFavorites";
 import { useNamedLabels } from "@/hooks/useNamedLabels";
-import { es } from "@/i18n/es";
+import { es, interpolate } from "@/i18n/es";
+import { genreLabel } from "@/lib/genres";
 import { isOverdueDueAt } from "@/lib/dates";
 import { mapApiError } from "@/lib/errors";
 import { recommendationErrorKind } from "@/lib/recommendations";
@@ -63,6 +65,15 @@ export function BookPage() {
   const genreIds = useMemo(() => book?.genre_ids ?? [], [book]);
   const authors = useNamedLabels("authors", authorIds);
   const genres = useNamedLabels("genres", genreIds);
+  const workQuery = useQuery({
+    queryKey: ["named", "works", book?.work_id ?? 0],
+    queryFn: () => endpoints.named.get("works", book?.work_id as number),
+    enabled: Boolean(book?.work_id),
+    staleTime: 5 * 60_000,
+    retry: 0,
+  });
+  const { favorites, toggle: favoriteMutation } = useFavorites(reader);
+  const isFavorite = favorites.has(bookId);
 
   const copiesQuery = useInfiniteQuery({
     queryKey: ["copies", bookId, "book-page"],
@@ -156,6 +167,7 @@ export function BookPage() {
       setActionError(null);
       setActionMessage(es.book.reserveSuccess);
       void queryClient.invalidateQueries({ queryKey: ["circulation"] });
+      void queryClient.invalidateQueries({ queryKey: ["books", bookId] });
     },
     onError: (error) => {
       setActionMessage(null);
@@ -226,18 +238,23 @@ export function BookPage() {
   if (!book) return null;
 
   const copies = (copiesQuery.data?.pages ?? []).flatMap((page) => page.copies);
-  const summary = copiesQuery.data?.pages[0];
-  const authorNames = authorIds
-    .map((authorId) => {
-      const label = authors.labels.get(authorId);
-      const role = book.authors.find((author) => author.author_id === authorId)?.role;
-      if (!label) return null;
-      return role && role !== "author" ? `${label} (${role})` : label;
-    })
-    .filter((value): value is string => Boolean(value));
-  const genreNames = genreIds
-    .map((genreId) => genres.labels.get(genreId))
-    .filter((value): value is string => Boolean(value));
+  const authorLinks = book.authors.map((author) => {
+    const label = authors.labels.get(author.author_id);
+    const name = label ?? `#${author.author_id}`;
+    return {
+      id: author.author_id,
+      name,
+      text: author.role && author.role !== "author" ? `${name} (${author.role})` : name,
+    };
+  });
+  const genreLinks = genreIds.flatMap((genreId) => {
+    const name = genres.labels.get(genreId);
+    return name ? [{ id: genreId, raw: name, label: genreLabel(name) }] : [];
+  });
+  const genreNames = genreLinks.map((genre) => genre.raw);
+  // A record without any physical copy cannot be requested or reserved (409).
+  const noCopies = !book.has_copies;
+  const allBusy = book.has_copies && !book.has_available_copies;
 
   const similarState = similarQuery.isError
     ? recommendationErrorKind(similarQuery.error)
@@ -253,35 +270,76 @@ export function BookPage() {
       <div className="grid gap-8 lg:grid-cols-[240px_1fr] lg:items-start">
         <div className="flex flex-col items-center gap-4 lg:sticky lg:top-24">
           <Cover title={book.title} genres={genreNames} size="lg" />
-          <p className="m-0 text-center text-[0.75rem] leading-snug text-[rgba(243,240,250,0.5)]">
+          <p className="m-0 text-center text-[0.75rem] leading-snug text-fg-subtle">
             {es.common.snapshot}
           </p>
         </div>
 
         <div className="min-w-0">
-          <p className="m-0 text-[0.82rem] text-[rgba(243,240,250,0.64)]">
-            {authorNames.length ? authorNames.join(", ") : es.book.authors}
+          <p className="m-0 text-[0.95rem] text-fg-muted">
+            {authorLinks.length
+              ? authorLinks.map((author, index) => (
+                  <span key={author.id}>
+                    {index > 0 ? ", " : null}
+                    <Link
+                      to={`/catalog?author_id=${author.id}`}
+                      title={interpolate(es.book.authorFilterLink, { name: author.name })}
+                      className="font-semibold text-fg underline decoration-brass/60 underline-offset-4 hover:text-accent"
+                    >
+                      {author.text}
+                    </Link>
+                  </span>
+                ))
+              : es.book.unknownAuthor}
           </p>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {genreNames.map((genre) => (
-              <StatusBadge key={genre} tone="quiet">
-                {genre}
-              </StatusBadge>
+            {genreLinks.map((genre) => (
+              <Link
+                key={genre.id}
+                to={`/catalog?genre_id=${genre.id}`}
+                className="chip"
+                title={interpolate(es.book.genreFilterLink, { name: genre.label })}
+              >
+                {genre.label}
+              </Link>
             ))}
+            {reader ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-pressed={isFavorite}
+                loading={favoriteMutation.isPending}
+                onClick={() =>
+                  favoriteMutation.mutate(
+                    { bookId, favorite: !isFavorite },
+                    {
+                      onSuccess: () =>
+                        setActionMessage(isFavorite ? es.book.favoriteRemoved : es.book.favoriteAdded),
+                      onError: (error) => setActionError(error),
+                    },
+                  )
+                }
+              >
+                <span aria-hidden="true" className={isFavorite ? "text-lamp" : undefined}>
+                  {isFavorite ? "♥" : "♡"}
+                </span>
+                {isFavorite ? es.book.favoriteRemove : es.book.favoriteAdd}
+              </Button>
+            ) : null}
           </div>
 
-          <dl className="mt-6 grid gap-x-8 gap-y-3 border-y border-[rgba(243,240,250,0.14)] py-4 text-[0.85rem] sm:grid-cols-2">
+          <dl className="mt-6 grid gap-x-8 gap-y-3 border-y border-line py-4 text-[0.85rem] sm:grid-cols-2">
             {[
               [es.book.year, book.publication_year],
               [es.book.language, book.language_code],
               [es.book.pages, book.num_pages],
               [es.book.isbn, book.isbn],
               [es.book.isbn13, book.isbn13],
-              [es.book.work, book.work_id],
+              [es.book.work, book.work_id ? (workQuery.data?.value ?? `#${book.work_id}`) : null],
             ].map(([label, value]) => (
               <div key={String(label)} className="flex justify-between gap-4">
-                <dt className="text-[rgba(243,240,250,0.54)]">{label}</dt>
-                <dd className="m-0 text-right font-tabular text-ink">
+                <dt className="text-fg-subtle">{label}</dt>
+                <dd className="m-0 text-right font-tabular text-fg">
                   {value ?? "—"}
                 </dd>
               </div>
@@ -289,36 +347,38 @@ export function BookPage() {
           </dl>
 
           <section className="mt-6">
-            <h2 className="font-display text-2xl font-semibold text-ink">
+            <h2 className="font-display text-2xl font-semibold text-fg">
               {es.book.description}
             </h2>
-            <p className="mt-2 max-w-2xl whitespace-pre-line text-[0.92rem] leading-relaxed text-[rgba(243,240,250,0.74)]">
+            <p className="mt-2 max-w-2xl whitespace-pre-line text-[0.92rem] leading-relaxed text-fg-muted">
               {book.description ?? es.book.noDescription}
             </p>
           </section>
 
-          <section className="mt-8 border-t border-[rgba(243,240,250,0.14)] pt-6">
-            <h2 className="font-display text-2xl font-semibold text-ink">
+          <section className="mt-8 border-t border-line pt-6">
+            <h2 className="font-display text-2xl font-semibold text-fg">
               {es.book.availability}
             </h2>
-            {summary ? (
-              <p className="mt-1 text-[0.9rem] text-[rgba(243,240,250,0.72)]">
-                {summary.available === 0
-                  ? es.book.allCopiesBusy
-                  : es.book.availableOf
-                      .replace("{{available}}", String(summary.available))
-                      .replace("{{total}}", String(summary.total))}
-              </p>
-            ) : copiesQuery.isError ? (
-              <p className="mt-1 text-[0.9rem] text-[rgba(243,240,250,0.62)]">
-                {es.catalog.availabilityError}
-              </p>
-            ) : (
-              <p className="mt-1 text-[0.9rem] text-[rgba(243,240,250,0.62)]">
-                {es.catalog.availabilityLoading}
-              </p>
-            )}
-            <p className="mt-1 max-w-xl text-[0.78rem] leading-snug text-[rgba(243,240,250,0.5)]">
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-[0.95rem] text-fg">
+              <StatusBadge tone={noCopies ? "neutral" : allBusy ? "warn" : "good"}>
+                {noCopies
+                  ? es.book.noCopies
+                  : interpolate(es.book.availableOf, {
+                      available: book.available_copies,
+                      total: book.total_copies,
+                    })}
+              </StatusBadge>
+              {book.has_copies && (book.loaned_copies || book.reserved_copies || book.non_circulating_copies) ? (
+                <span className="text-[0.8rem] text-fg-subtle">
+                  {interpolate(es.book.copiesBreakdown, {
+                    loaned: book.loaned_copies,
+                    reserved: book.reserved_copies,
+                    nonCirculating: book.non_circulating_copies,
+                  })}
+                </span>
+              ) : null}
+            </p>
+            <p className="mt-1 max-w-xl text-[0.78rem] leading-snug text-fg-subtle">
               {es.book.availabilityNote}
             </p>
 
@@ -327,14 +387,11 @@ export function BookPage() {
                 <Button
                   onClick={() => requestMutation.mutate()}
                   loading={requestMutation.isPending}
-                  disabled={
-                    pendingRequest ||
-                    hasOverdue ||
-                    hasTwoLoans ||
-                    !bookQuery.data
-                  }
+                  disabled={noCopies || pendingRequest || hasOverdue || hasTwoLoans}
                   title={
-                    pendingRequest
+                    noCopies
+                      ? es.book.noCopies
+                      : pendingRequest
                       ? es.book.requestDisabledAlready
                       : hasOverdue
                         ? es.book.requestDisabledOverdue
@@ -349,9 +406,11 @@ export function BookPage() {
                   variant="secondary"
                   onClick={() => reserveMutation.mutate()}
                   loading={reserveMutation.isPending}
-                  disabled={activeReservation}
+                  disabled={noCopies || activeReservation}
                   title={
-                    activeReservation
+                    noCopies
+                      ? es.book.noCopies
+                      : activeReservation
                       ? es.book.reserveDisabledAlready
                       : undefined
                   }
@@ -360,8 +419,10 @@ export function BookPage() {
                 </Button>
               </div>
             ) : null}
-            {reader && (hasOverdue || hasTwoLoans || pendingRequest || activeReservation) ? (
-              <p className="mt-2 text-[0.8rem] text-[rgba(243,240,250,0.68)]">
+            {reader && noCopies ? (
+              <p className="notice notice--warning mt-3 max-w-2xl">{es.book.noPhysicalCopies}</p>
+            ) : reader && (hasOverdue || hasTwoLoans || pendingRequest || activeReservation) ? (
+              <p className="notice notice--warning mt-3 max-w-2xl">
                 {pendingRequest
                   ? es.book.requestDisabledAlready
                   : activeReservation
@@ -371,13 +432,18 @@ export function BookPage() {
                       : es.book.requestDisabledTwoLoans}
               </p>
             ) : null}
-            <p className="mt-2 max-w-xl text-[0.78rem] text-[rgba(243,240,250,0.52)]">
-              {es.book.requestLoanHint} {es.book.reserveHint}
-            </p>
+            {reader && allBusy && !activeReservation ? (
+              <p className="mt-3 max-w-xl text-[0.82rem] text-fg-muted">{es.book.allBusyHint}</p>
+            ) : null}
+            {!noCopies ? (
+              <p className="mt-2 max-w-xl text-[0.78rem] text-fg-subtle">
+                {es.book.requestLoanHint} {es.book.reserveHint}
+              </p>
+            ) : null}
             {actionMessage ? (
               <p
                 role="status"
-                className="mt-3 border-l-2 border-[#637a68] bg-[rgba(51,69,59,0.08)] px-3 py-2 text-[0.85rem] text-[#2c4034]"
+                className="notice notice--success mt-3"
               >
                 {actionMessage}
               </p>
@@ -390,11 +456,11 @@ export function BookPage() {
           </section>
 
           {reader ? (
-            <section className="mt-8 border-t border-[rgba(243,240,250,0.14)] pt-6">
-              <h2 className="font-display text-2xl font-semibold text-ink">
+            <section className="mt-8 border-t border-line pt-6">
+              <h2 className="font-display text-2xl font-semibold text-fg">
                 {es.book.rateTitle}
               </h2>
-              <p className="mt-1 max-w-xl text-[0.85rem] text-[rgba(243,240,250,0.64)]">
+              <p className="mt-1 max-w-xl text-[0.85rem] text-fg-subtle">
                 {es.book.rateHint}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-4">
@@ -415,7 +481,7 @@ export function BookPage() {
                   </Button>
                 ) : null}
                 {ratingMessage ? (
-                  <span className="text-[0.8rem] text-[rgba(243,240,250,0.62)]">
+                  <span className="text-[0.8rem] text-fg-subtle">
                     {ratingMessage}
                   </span>
                 ) : null}
@@ -425,13 +491,13 @@ export function BookPage() {
         </div>
       </div>
 
-      <section className="mt-12 border-t border-[rgba(243,240,250,0.16)] pt-6">
+      <section className="mt-12 border-t border-line pt-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="font-display text-3xl font-semibold text-ink">
+            <h2 className="font-display text-3xl font-semibold text-fg">
               {es.book.copiesTitle}
             </h2>
-            <p className="mt-1 max-w-2xl text-[0.85rem] text-[rgba(243,240,250,0.62)]">
+            <p className="mt-1 max-w-2xl text-[0.85rem] text-fg-subtle">
               {es.book.copiesIntro}
             </p>
           </div>
@@ -443,13 +509,13 @@ export function BookPage() {
             <ErrorState error={copiesQuery.error} compact />
           </div>
         ) : copies.length === 0 ? (
-          <p className="mt-4 text-[0.88rem] text-[rgba(243,240,250,0.62)]">
+          <p className="mt-4 text-[0.88rem] text-fg-subtle">
             {es.book.copiesEmpty}
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto border border-[rgba(243,240,250,0.14)]">
+          <div className="mt-4 overflow-x-auto border border-line">
             <table className="w-full min-w-[34rem] border-collapse text-left text-[0.85rem]">
-              <thead className="bg-[rgba(243,240,250,0.05)] text-[0.72rem] text-[rgba(243,240,250,0.56)]">
+              <thead className="bg-wash text-[0.72rem] text-fg-subtle">
                 <tr>
                   <th className="px-3 py-2 font-semibold">{es.book.copyCode}</th>
                   <th className="px-3 py-2 font-semibold">{es.book.copyStatus}</th>
@@ -461,7 +527,7 @@ export function BookPage() {
                 {copies.map((copy) => (
                   <tr
                     key={copy.id}
-                    className="border-t border-[rgba(243,240,250,0.1)]"
+                    className="border-t border-line"
                   >
                     <td className="px-3 py-2 font-tabular">{copy.inventory_code}</td>
                     <td className="px-3 py-2">
@@ -490,11 +556,11 @@ export function BookPage() {
         ) : null}
       </section>
 
-      <section className="mt-12 border-t border-[rgba(243,240,250,0.16)] pt-6">
-        <h2 className="font-display text-3xl font-semibold text-ink">
+      <section className="mt-12 border-t border-line pt-6">
+        <h2 className="font-display text-3xl font-semibold text-fg">
           {es.book.similarTitle}
         </h2>
-        <p className="mt-1 max-w-2xl text-[0.85rem] text-[rgba(243,240,250,0.62)]">
+        <p className="mt-1 max-w-2xl text-[0.85rem] text-fg-subtle">
           {es.book.similarIntro}
         </p>
         <div className="mt-4">

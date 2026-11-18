@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthProvider";
 import { canAdmin, canRead, canStaff, landingPath } from "@/auth/capabilities";
@@ -84,6 +84,24 @@ export function AppShell() {
   const groups = useNavGroups();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Staff/admin accounts carry several nav sections; give them their own row.
+  const wideNav = groups.length > 1;
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Sticky toolbars below the header offset themselves by its real height.
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header || typeof ResizeObserver === "undefined") return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => {
+      root.style.setProperty("--header-h", `${header.offsetHeight}px`);
+    });
+    observer.observe(header);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--header-h");
+    };
+  }, []);
 
   useEffect(() => {
     if (!flash) return;
@@ -99,8 +117,8 @@ export function AppShell() {
       >
         Saltar al contenido
       </a>
-      <header className="sticky top-0 z-30 room-chrome border-b border-[rgba(232,228,216,0.2)]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+      <header ref={headerRef} className="sticky top-0 z-30 room-chrome border-b border-[rgba(232,228,216,0.2)]">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6 lg:px-8">
           <Link
             to={landingPath(user)}
             className="shrink-0 no-underline"
@@ -111,7 +129,10 @@ export function AppShell() {
 
           <nav
             aria-label="Principal"
-            className="hidden flex-1 items-center gap-5 lg:flex"
+            className={cn(
+              "hidden min-w-0 items-center gap-5 lg:flex",
+              wideNav ? "order-last basis-full flex-wrap gap-y-1 border-t border-[rgba(232,228,216,0.12)] pt-2" : "flex-1",
+            )}
           >
             {groups.map((group) => (
               <div key={group.label} className="flex items-center gap-1">
@@ -130,7 +151,7 @@ export function AppShell() {
           <div className="hidden items-center gap-3 lg:flex">
             <Link
               to="/account"
-              className="max-w-40 truncate text-[0.78rem] text-[rgba(243,240,250,0.62)] no-underline hover:text-oxblood"
+              className="max-w-40 truncate text-[0.78rem] text-fg-subtle no-underline hover:text-accent"
             >
               {user?.display_name}
             </Link>
@@ -149,7 +170,7 @@ export function AppShell() {
           <div className="flex items-center gap-2 lg:hidden">
             <Link
               to="/account"
-              className="max-w-28 truncate text-[0.72rem] text-[rgba(243,240,250,0.62)] no-underline"
+              className="max-w-28 truncate text-[0.72rem] text-fg-subtle no-underline"
             >
               {user?.display_name}
             </Link>
@@ -167,12 +188,12 @@ export function AppShell() {
         {menuOpen ? (
           <div
             id="mobile-nav"
-            className="border-t border-[rgba(243,240,250,0.14)] bg-surface px-4 py-4 lg:hidden"
+            className="border-t border-line bg-surface px-4 py-4 lg:hidden"
           >
             <nav aria-label="Principal móvil" className="space-y-4">
               {groups.map((group) => (
                 <div key={group.label}>
-                  <p className="mb-1 text-[0.68rem] font-semibold text-[rgba(243,240,250,0.5)]">
+                  <p className="mb-1 text-[0.68rem] font-semibold text-fg-subtle">
                     {group.label}
                   </p>
                   <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -190,7 +211,7 @@ export function AppShell() {
                   </div>
                 </div>
               ))}
-              <div className="flex items-center justify-between border-t border-[rgba(243,240,250,0.14)] pt-3">
+              <div className="flex items-center justify-between border-t border-line pt-3">
                 <Link to="/account" className="text-[0.8rem] font-semibold">
                   {es.nav.account}
                 </Link>
@@ -213,7 +234,7 @@ export function AppShell() {
       {flash ? (
         <div
           role="status"
-          className="border-b border-[rgba(107,32,36,0.25)] bg-[rgba(107,32,36,0.08)] px-4 py-2.5 text-center text-[0.84rem] text-oxblood"
+          className="notice notice--warning border-l-0 border-b border-b-line text-center"
         >
           {flash}
         </div>
@@ -226,8 +247,8 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <footer className="mt-auto border-t border-[rgba(243,240,250,0.14)]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-6 text-[0.75rem] text-[rgba(243,240,250,0.54)] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+      <footer className="mt-auto border-t border-line">
+        <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-6 text-[0.75rem] text-fg-subtle sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <p className="m-0">{es.app.tagline}</p>
           <p className="m-0">{es.app.description}</p>
         </div>

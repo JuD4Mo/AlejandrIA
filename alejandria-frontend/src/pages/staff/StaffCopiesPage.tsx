@@ -41,7 +41,6 @@ export function StaffCopiesPage() {
   const [status, setStatus] = useState<CopyStatus>("circulating");
   const [location, setLocation] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<unknown>(null);
 
   const bookQuery = useQuery({
     queryKey: ["books", bookId],
@@ -75,6 +74,7 @@ export function StaffCopiesPage() {
   const summary = copiesQuery.data?.pages[0];
 
   const openCreate = () => {
+    mutation.reset();
     setEditing(null);
     setInventoryCode("");
     setStatus("circulating");
@@ -83,6 +83,7 @@ export function StaffCopiesPage() {
   };
 
   const openEdit = (copy: Copy) => {
+    mutation.reset();
     setEditing(copy);
     setInventoryCode(copy.inventory_code);
     setStatus(copy.status);
@@ -95,7 +96,6 @@ export function StaffCopiesPage() {
       editing
         ? endpoints.copies.update(bookId, editing.id, input)
         : endpoints.copies.create(bookId, input),
-    onMutate: () => setActionError(null),
     onSuccess: () => {
       setMessage(
         editing ? es.staff.copyUpdated : es.staff.copyCreated,
@@ -105,7 +105,7 @@ export function StaffCopiesPage() {
       void queryClient.invalidateQueries({ queryKey: ["copies"] });
       void queryClient.invalidateQueries({ queryKey: ["books"] });
     },
-    onError: (error) => setActionError(error),
+    // Errors are shown inside the dialog, next to the fields being edited.
   });
 
   const busy =
@@ -150,19 +150,14 @@ export function StaffCopiesPage() {
       {message ? (
         <p
           role="status"
-          className="mb-4 border-l-2 border-[#637a68] bg-[rgba(51,69,59,0.08)] px-4 py-3 text-[0.86rem] text-[#2c4034]"
+          className="notice notice--success mb-4"
         >
           {message}
         </p>
       ) : null}
-      {actionError ? (
-        <div className="mb-4">
-          <ErrorState error={actionError} compact />
-        </div>
-      ) : null}
 
       {summary ? (
-        <p className="mb-4 font-tabular text-[0.82rem] text-[rgba(243,240,250,0.6)]">
+        <p className="mb-4 font-tabular text-[0.82rem] text-fg-subtle">
           {es.book.availableOf
             .replace("{{available}}", String(summary.available))
             .replace("{{total}}", String(summary.total))}
@@ -185,9 +180,9 @@ export function StaffCopiesPage() {
         />
       ) : (
         <>
-          <div className="overflow-x-auto border border-[rgba(243,240,250,0.14)]">
+          <div className="overflow-x-auto border border-line">
             <table className="w-full min-w-[42rem] border-collapse text-left text-[0.85rem]">
-              <thead className="bg-[rgba(243,240,250,0.05)] text-[0.72rem] text-[rgba(243,240,250,0.56)]">
+              <thead className="bg-wash text-[0.72rem] text-fg-subtle">
                 <tr>
                   <th className="px-3 py-2 font-semibold">ID</th>
                   <th className="px-3 py-2 font-semibold">{es.staff.copyCode}</th>
@@ -198,7 +193,7 @@ export function StaffCopiesPage() {
               </thead>
               <tbody>
                 {copies.map((copy) => (
-                  <tr key={copy.id} className="border-t border-[rgba(243,240,250,0.1)]">
+                  <tr key={copy.id} className="border-t border-line">
                     <td className="px-3 py-2 font-tabular">{copy.id}</td>
                     <td className="px-3 py-2 font-tabular">{copy.inventory_code}</td>
                     <td className="px-3 py-2">
@@ -295,9 +290,9 @@ export function StaffCopiesPage() {
             />
           </Field>
           {busy ? (
-            <p className="text-[0.84rem] text-oxblood">{es.staff.copyBusy}</p>
+            <p className="text-[0.84rem] text-danger">{es.staff.copyBusy}</p>
           ) : mutation.isError ? (
-            <p className="text-[0.84rem] text-oxblood">
+            <p className="text-[0.84rem] text-danger">
               {mapApiError(mutation.error).message}
             </p>
           ) : null}

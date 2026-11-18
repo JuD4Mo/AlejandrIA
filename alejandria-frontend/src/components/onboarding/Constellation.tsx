@@ -67,7 +67,7 @@ export function Constellation({
         cy={center.y}
         r="150"
         fill="none"
-        stroke="rgba(243,240,250,0.16)"
+        stroke="rgba(232,228,216,0.16)"
         strokeWidth="1"
         strokeDasharray="2 11"
         className={phase === "complete" ? "constellation-orbit" : undefined}
@@ -130,7 +130,7 @@ export function Constellation({
                 style={{ animationDelay: delay }}
               />
             ) : null}
-            <circle cx={node.x} cy={node.y} r="10" fill={color} stroke="#f3f0fa" strokeWidth="2" />
+            <circle cx={node.x} cy={node.y} r="10" fill={color} stroke="#e8e4d8" strokeWidth="2" />
             <circle
               cx={node.x}
               cy={node.y}
@@ -144,7 +144,7 @@ export function Constellation({
               x={node.x}
               y={node.y + 34}
               textAnchor="middle"
-              fill="rgba(243,240,250,0.72)"
+              fill="rgba(232,228,216,0.72)"
               fontFamily="var(--font-body)"
               fontSize="11"
               fontWeight="600"
@@ -171,7 +171,7 @@ export function Constellation({
         cy={center.y}
         r="29"
         fill="#6b2024"
-        stroke="#f3f0fa"
+        stroke="#e8e4d8"
         strokeWidth="2"
         filter={phase === "complete" ? "url(#onboarding-soft-glow)" : undefined}
       />
@@ -180,7 +180,7 @@ export function Constellation({
         y={center.y + 1}
         textAnchor="middle"
         dominantBaseline="middle"
-        fill="#f3f0fa"
+        fill="#e8e4d8"
         fontFamily="var(--font-display)"
         fontSize="25"
         fontWeight="600"

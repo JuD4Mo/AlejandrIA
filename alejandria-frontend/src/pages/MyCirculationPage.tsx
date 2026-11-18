@@ -198,7 +198,7 @@ export function MyCirculationPage() {
         />
       );
     return (
-      <div className="circulation-records divide-y divide-[rgba(243,240,250,0.12)]">
+      <div className="circulation-records divide-y divide-line">
         {rows.map((loan) => {
           const overdue = isOverdueDueAt(loan.due_at, loan.returned_at);
           const loanRenewals = (renewalsQuery.data?.pages ?? [])
@@ -223,13 +223,13 @@ export function MyCirculationPage() {
             <article key={loan.id} className="p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="m-0 text-[0.72rem] font-semibold text-[rgba(243,240,250,0.52)]">
+                  <p className="m-0 text-[0.72rem] font-semibold text-fg-subtle">
                     {es.circulation.loanReference.replace("{{id}}", String(loan.id))}
                   </p>
-                  <h2 className="mt-0.5 font-display text-xl font-semibold text-ink">
+                  <h2 className="mt-0.5 font-display text-xl font-semibold text-fg">
                     <BookLabel bookId={loan.book_id} />
                   </h2>
-                  <p className="m-0 text-[0.8rem] text-[rgba(243,240,250,0.62)]">
+                  <p className="m-0 text-[0.8rem] text-fg-subtle">
                     {es.circulation.loanCopy}: <CopyLabel bookId={loan.book_id} copyId={loan.copy_id} />
                   </p>
                 </div>
@@ -243,7 +243,7 @@ export function MyCirculationPage() {
               </div>
               <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[0.8rem]">
                 <div>
-                  <dt className="inline text-[rgba(243,240,250,0.52)]">
+                  <dt className="inline text-fg-subtle">
                     {es.circulation.deliveredAt}:{" "}
                   </dt>
                   <dd className="m-0 inline font-tabular">
@@ -251,7 +251,7 @@ export function MyCirculationPage() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="inline text-[rgba(243,240,250,0.52)]">
+                  <dt className="inline text-fg-subtle">
                     {es.circulation.dueAt}:{" "}
                   </dt>
                   <dd className="m-0 inline font-tabular">
@@ -260,7 +260,7 @@ export function MyCirculationPage() {
                 </div>
                 {loan.returned_at ? (
                   <div>
-                    <dt className="inline text-[rgba(243,240,250,0.52)]">
+                    <dt className="inline text-fg-subtle">
                       {es.circulation.returnedAt}:{" "}
                     </dt>
                     <dd className="m-0 inline font-tabular">
@@ -285,7 +285,7 @@ export function MyCirculationPage() {
                     {es.circulation.requestRenewal}
                   </Button>
                   {blockReason ? (
-                    <span className="text-[0.78rem] text-[rgba(243,240,250,0.58)]">
+                    <span className="text-[0.78rem] text-fg-subtle">
                       {blockReason}
                     </span>
                   ) : null}
@@ -304,12 +304,12 @@ export function MyCirculationPage() {
         <EmptyState title={es.circulation.noRequests} body={es.circulation.requestsHint} className="library-empty" />
       );
     return (
-      <div className="circulation-records divide-y divide-[rgba(243,240,250,0.12)]">
+      <div className="circulation-records divide-y divide-line">
         {rows.map((request) => (
           <article key={request.id} className="p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="m-0 text-[0.72rem] font-semibold text-[rgba(243,240,250,0.52)]">
+                <p className="m-0 text-[0.72rem] font-semibold text-fg-subtle">
                   {es.circulation.requestId.replace("{{id}}", String(request.id))}
                 </p>
                 <h2 className="mt-0.5 font-display text-xl font-semibold">
@@ -330,11 +330,11 @@ export function MyCirculationPage() {
                 {es.circulation.requestStatus[request.status]}
               </StatusBadge>
             </div>
-            <p className="mt-2 text-[0.8rem] text-[rgba(243,240,250,0.6)]">
+            <p className="mt-2 text-[0.8rem] text-fg-subtle">
               {es.circulation.requestedOn}: {formatDateTime(request.created_at)}
             </p>
             {request.decision_note ? (
-              <p className="mt-1 text-[0.82rem] text-[rgba(243,240,250,0.68)]">
+              <p className="mt-1 text-[0.82rem] text-fg-muted">
                 {es.circulation.decisionNote}: {request.decision_note}
               </p>
             ) : null}
@@ -359,14 +359,14 @@ export function MyCirculationPage() {
         <EmptyState title={es.circulation.noRenewals} body={es.circulation.renewalsHint} className="library-empty" />
       );
     return (
-      <div className="circulation-records divide-y divide-[rgba(243,240,250,0.12)]">
+      <div className="circulation-records divide-y divide-line">
         {rows.map((renewal) => {
           const loan = loanMap.get(renewal.loan_id);
           return (
             <article key={renewal.id} className="p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="m-0 text-[0.72rem] font-semibold text-[rgba(243,240,250,0.52)]">
+                  <p className="m-0 text-[0.72rem] font-semibold text-fg-subtle">
                     {es.circulation.renewalId.replace("{{id}}", String(renewal.id))}
                   </p>
                   <h2 className="mt-0.5 font-display text-xl font-semibold">
@@ -396,7 +396,7 @@ export function MyCirculationPage() {
               </div>
               <dl className="mt-3 grid gap-x-6 gap-y-1 text-[0.8rem] sm:grid-cols-2">
                 <div>
-                  <dt className="inline text-[rgba(243,240,250,0.52)]">
+                  <dt className="inline text-fg-subtle">
                     {es.circulation.requestedAt}:{" "}
                   </dt>
                   <dd className="m-0 inline font-tabular">
@@ -404,7 +404,7 @@ export function MyCirculationPage() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="inline text-[rgba(243,240,250,0.52)]">
+                  <dt className="inline text-fg-subtle">
                     {es.circulation.previousDueAt}:{" "}
                   </dt>
                   <dd className="m-0 inline font-tabular">
@@ -413,7 +413,7 @@ export function MyCirculationPage() {
                 </div>
                 {renewal.new_due_at ? (
                   <div>
-                    <dt className="inline text-[rgba(243,240,250,0.52)]">
+                    <dt className="inline text-fg-subtle">
                       {es.circulation.newDueAt}:{" "}
                     </dt>
                     <dd className="m-0 inline font-tabular">
@@ -423,7 +423,7 @@ export function MyCirculationPage() {
                 ) : null}
               </dl>
               {renewal.decision_note ? (
-                <p className="mt-1 text-[0.82rem] text-[rgba(243,240,250,0.68)]">
+                <p className="mt-1 text-[0.82rem] text-fg-muted">
                   {es.circulation.decisionNote}: {renewal.decision_note}
                 </p>
               ) : null}
@@ -453,14 +453,14 @@ export function MyCirculationPage() {
         />
       );
     return (
-      <div className="circulation-records divide-y divide-[rgba(243,240,250,0.12)]">
+      <div className="circulation-records divide-y divide-line">
         {rows.map((reservation) => {
           const ready = reservation.status === "ready";
           return (
             <article key={reservation.id} className="p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="m-0 text-[0.72rem] font-semibold text-[rgba(243,240,250,0.52)]">
+                  <p className="m-0 text-[0.72rem] font-semibold text-fg-subtle">
                     {es.circulation.reservationId.replace(
                       "{{id}}",
                       String(reservation.id),
@@ -482,11 +482,11 @@ export function MyCirculationPage() {
                   {es.circulation.reservationStatus[reservation.status]}
                 </StatusBadge>
               </div>
-              <p className="mt-2 text-[0.8rem] text-[rgba(243,240,250,0.6)]">
+              <p className="mt-2 text-[0.8rem] text-fg-subtle">
                 {es.circulation.requestedOn}: {formatDateTime(reservation.created_at)}
               </p>
               {ready && reservation.pickup_expires_at ? (
-                <p className="mt-1 text-[0.82rem] text-[#67501d]">
+                <p className="mt-1 text-[0.82rem] text-warning">
                   {es.circulation.pickupUntil}:{" "}
                   <span className="font-tabular">
                     {formatDateTime(reservation.pickup_expires_at)}
@@ -494,7 +494,7 @@ export function MyCirculationPage() {
                 </p>
               ) : null}
               {ready ? (
-                <p className="mt-1 text-[0.8rem] text-[rgba(243,240,250,0.6)]">
+                <p className="mt-1 text-[0.8rem] text-fg-subtle">
                   {es.circulation.pickupAtCounter}
                 </p>
               ) : null}
@@ -529,11 +529,11 @@ export function MyCirculationPage() {
       <LibrarySpines />
 
       {hasOverdue ? (
-        <div className="mb-4 border-l-2 border-oxblood bg-[rgba(107,32,36,0.06)] px-4 py-3 text-[0.86rem] text-oxblood">
+        <div className="notice notice--error mb-4">
           {es.circulation.overdueNotice}
         </div>
       ) : hasTwoLoans ? (
-        <div className="mb-4 border-l-2 border-brass bg-[rgba(168,134,59,0.1)] px-4 py-3 text-[0.86rem] text-[#5c4818]">
+        <div className="notice notice--warning mb-4">
           {es.circulation.twoLoansNotice}
         </div>
       ) : null}
@@ -541,7 +541,7 @@ export function MyCirculationPage() {
       {message ? (
         <p
           role="status"
-          className="mb-4 border-l-2 border-[#637a68] bg-[rgba(51,69,59,0.08)] px-4 py-3 text-[0.86rem] text-[#2c4034]"
+          className="notice notice--success mb-4"
         >
           {message}
         </p>

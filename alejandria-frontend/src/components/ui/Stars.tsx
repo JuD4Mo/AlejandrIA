@@ -33,7 +33,7 @@ export function Stars({
               aria-hidden="true"
               className={cn(
                 dimensions,
-                filled ? "text-brass" : "text-[rgba(243,240,250,0.2)]",
+                filled ? "text-brass" : "text-fg/25",
               )}
             >
               ★
@@ -54,7 +54,7 @@ export function Stars({
             className={cn(
               "leading-none transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50",
               dimensions,
-              filled ? "text-brass" : "text-[rgba(243,240,250,0.22)]",
+              filled ? "text-brass" : "text-fg/25",
             )}
           >
             ★

@@ -5,6 +5,7 @@ import { Cover } from "@/components/ui/Cover";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { es } from "@/i18n/es";
 import { cn } from "@/lib/cn";
+import { genreLabel } from "@/lib/genres";
 
 export function RecommendationCard({
   item,
@@ -21,14 +22,14 @@ export function RecommendationCard({
         <Cover title={title} genres={item.genres} size="md" showInitial={false} />
       </div>
       <div className="recommendation-copy">
-        <h3 className="recommendation-title group-hover:text-oxblood">{title}</h3>
+        <h3 className="recommendation-title group-hover:text-accent">{title}</h3>
         <p className="recommendation-authors">
           {item.authors.length
             ? item.authors.join(", ")
             : es.recommendations.authorsUnknown}
         </p>
         {item.genres.length ? (
-          <p className="recommendation-genres">{item.genres.join(" · ")}</p>
+          <p className="recommendation-genres">{item.genres.map(genreLabel).join(" · ")}</p>
         ) : null}
       </div>
       <div className="recommendation-statuses">

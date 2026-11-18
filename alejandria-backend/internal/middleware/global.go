@@ -26,7 +26,7 @@ func NewGlobalMiddlewares(s *server.Server) *GlobalMiddlewares {
 func (global *GlobalMiddlewares) CORS(next http.Handler) http.Handler {
 	options := cors.Options{
 		AllowedOrigins:   global.server.Config.Server.CORSAllowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
