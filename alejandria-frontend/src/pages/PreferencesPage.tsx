@@ -14,7 +14,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLoader } from "@/components/ui/Loading";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import { es } from "@/i18n/es";
+import { es, interpolate } from "@/i18n/es";
+import { genreLabel } from "@/lib/genres";
 import "./account-library.css";
 
 const GENRE_PAGE = 50;
@@ -55,14 +56,22 @@ export function PreferencesPage() {
 
   const genres = useMemo(() => {
     const seen = new Set<number>();
-    return (genresQuery.data?.pages ?? []).flatMap((page) =>
-      page.data.filter((genre) => {
-        if (seen.has(genre.id)) return false;
-        seen.add(genre.id);
-        return true;
-      }),
-    );
+    return (genresQuery.data?.pages ?? [])
+      .flatMap((page) =>
+        page.data.filter((genre) => {
+          if (seen.has(genre.id)) return false;
+          seen.add(genre.id);
+          return true;
+        }),
+      )
+      .map((genre) => ({ ...genre, label: genreLabel(genre.value) }))
+      .sort((a, b) => a.label.localeCompare(b.label, "es"));
   }, [genresQuery.data]);
+
+  const saved = useMemo(() => preferencesQuery.data?.data ?? [], [preferencesQuery.data]);
+  const dirty =
+    preferencesQuery.isSuccess &&
+    (saved.length !== selected.size || saved.some((preference) => !selected.has(preference.genre_id)));
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["preferences"] });
@@ -97,6 +106,25 @@ export function PreferencesPage() {
     onError: (error) => setActionError(error),
   });
 
+  const removeOneMutation = useMutation({
+    mutationFn: (input: { id: number; name: string }) =>
+      endpoints.personalization.deletePreference(input.id),
+    onMutate: () => {
+      setActionError(null);
+      setMessage(null);
+    },
+    onSuccess: (_, input) => {
+      setSelected((current) => {
+        const next = new Set(current);
+        next.delete(input.id);
+        return next;
+      });
+      setMessage(interpolate(es.personalization.preferenceRemoved, { name: input.name }));
+      invalidate();
+    },
+    onError: (error) => setActionError(error),
+  });
+
   const toggle = (id: number) => {
     setSelected((current) => {
       const next = new Set(current);
@@ -118,26 +146,58 @@ export function PreferencesPage() {
       {message ? (
         <p
           role="status"
-          className="library-success mb-4"
+          className="notice notice--success mb-4"
         >
           {message}
         </p>
       ) : null}
       {actionError ? (
         <div className="mb-4">
-          <ErrorState error={actionError} compact className="library-action-error" />
+          <ErrorState error={actionError} compact />
         </div>
       ) : null}
 
+      <section className="mb-6" aria-labelledby="saved-genres">
+        <h2 id="saved-genres" className="mb-2 text-[0.78rem] font-semibold text-fg-subtle">
+          {es.personalization.savedTitle}
+        </h2>
+        {saved.length ? (
+          <ul className="m-0 flex flex-wrap gap-2 p-0">
+            {saved.map((preference) => {
+              const name = genreLabel(preference.name);
+              return (
+                <li key={preference.genre_id} className="list-none">
+                  <button
+                    type="button"
+                    className="chip"
+                    disabled={removeOneMutation.isPending}
+                    aria-label={interpolate(es.personalization.removeOne, { name })}
+                    onClick={() => removeOneMutation.mutate({ id: preference.genre_id, name })}
+                  >
+                    {name}
+                    <span aria-hidden="true">×</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="m-0 text-[0.84rem] text-fg-muted">
+            {preferencesQuery.isPending ? es.common.loading : es.personalization.savedNone}
+          </p>
+        )}
+      </section>
+
       <div className="preferences-toolbar mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-        <p className="m-0 font-tabular text-[0.82rem] text-[rgba(243,240,250,0.6)]">
+        <p className="m-0 font-tabular text-[0.82rem] text-fg-subtle">
           {es.personalization.selected.replace("{{count}}", String(selected.size))}
+          {dirty ? <span className="ml-2 text-warning">· {es.personalization.unsaved}</span> : null}
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => saveMutation.mutate()}
             loading={saveMutation.isPending}
-            disabled={preferencesQuery.isPending}
+            disabled={preferencesQuery.isPending || !dirty}
           >
             {es.personalization.savePreferences}
           </Button>
@@ -145,7 +205,7 @@ export function PreferencesPage() {
             trigger={
               <Button
                 variant="secondary"
-                disabled={selected.size === 0 || clearMutation.isPending}
+                disabled={saved.length === 0 || clearMutation.isPending}
               >
                 {es.personalization.clearPreferences}
               </Button>
@@ -193,13 +253,13 @@ export function PreferencesPage() {
                     disabled={!checked && selected.size >= 100}
                     className="size-4 accent-[#6b2024]"
                   />
-                  <span className="min-w-0 truncate">{genre.value}</span>
+                  <span className="min-w-0">{genre.label}</span>
                 </label>
               );
             })}
           </div>
           {genresQuery.hasNextPage ? (
-            <div className="mt-6 flex justify-center border-t border-[rgba(243,240,250,0.14)] pt-5">
+            <div className="mt-6 flex justify-center border-t border-line pt-5">
               <Button
                 variant="secondary"
                 onClick={() => void genresQuery.fetchNextPage()}

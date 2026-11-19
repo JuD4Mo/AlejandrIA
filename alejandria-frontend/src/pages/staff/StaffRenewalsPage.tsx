@@ -12,8 +12,8 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Field, Select, Textarea } from "@/components/ui/Field";
-import { BookLabel, PageLoader } from "@/components/ui/Loading";
+import { Field, Select, Textarea, inputClass } from "@/components/ui/Field";
+import { BookLabel, PageLoader, ReaderLabel } from "@/components/ui/Loading";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -123,7 +123,7 @@ export function StaffRenewalsPage() {
       {message ? (
         <p
           role="status"
-          className="mb-4 border-l-2 border-[#637a68] bg-[rgba(51,69,59,0.08)] px-4 py-3 text-[0.86rem] text-[#2c4034]"
+          className="notice notice--success mb-4"
         >
           {message}
         </p>
@@ -134,7 +134,7 @@ export function StaffRenewalsPage() {
         </div>
       ) : null}
 
-      <div className="mb-4 flex flex-wrap items-end gap-3 border border-[rgba(243,240,250,0.14)] bg-[rgba(21,21,30,0.6)] p-3">
+      <div className="mb-4 flex flex-wrap items-end gap-3 toolbar-panel p-3">
         <Field label={es.circulation.statusFilter} htmlFor="renewal-filter" className="min-w-40">
           <Select
             id="renewal-filter"
@@ -153,10 +153,10 @@ export function StaffRenewalsPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={es.staff.queueSearchPlaceholder}
-            className="w-full rounded-xs border border-[rgba(243,240,250,0.28)] bg-[#101018] px-3 py-2 text-ink placeholder:text-[rgba(243,240,250,0.44)] focus:border-oxblood focus:bg-[#1c1c28]"
+            className={inputClass}
           />
         </Field>
-        <p className="m-0 pb-2 text-[0.75rem] text-[rgba(243,240,250,0.55)]">
+        <p className="m-0 pb-2 text-[0.75rem] text-fg-subtle">
           {es.staff.queueNote}
         </p>
       </div>
@@ -172,14 +172,14 @@ export function StaffRenewalsPage() {
         />
       ) : (
         <>
-          <div className="divide-y divide-[rgba(243,240,250,0.12)] border border-[rgba(243,240,250,0.14)]">
+          <div className="divide-y divide-line border border-line">
             {visible.map((row) => {
               const loan = loanMap.get(row.loan_id);
               return (
                 <article key={row.id} className="p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="m-0 text-[0.72rem] font-semibold text-[rgba(243,240,250,0.52)]">
+                      <p className="m-0 text-[0.72rem] font-semibold text-fg-subtle">
                         {es.circulation.renewalId.replace("{{id}}", String(row.id))}
                         {" · "}
                         {es.circulation.loanReference.replace(
@@ -198,11 +198,8 @@ export function StaffRenewalsPage() {
                         )}
                       </h2>
                       {loan ? (
-                        <p className="m-0 text-[0.8rem] text-[rgba(243,240,250,0.62)]">
-                          {es.circulation.unknownReader.replace(
-                            "{{id}}",
-                            String(loan.user_id),
-                          )}
+                        <p className="m-0 text-[0.8rem] text-fg-subtle">
+                          <ReaderLabel userId={loan.user_id} />
                         </p>
                       ) : null}
                     </div>
@@ -222,7 +219,7 @@ export function StaffRenewalsPage() {
                   </div>
                   <dl className="mt-2 grid gap-x-6 gap-y-1 text-[0.8rem] sm:grid-cols-2">
                     <div>
-                      <dt className="inline text-[rgba(243,240,250,0.52)]">
+                      <dt className="inline text-fg-subtle">
                         {es.circulation.requestedAt}:{" "}
                       </dt>
                       <dd className="m-0 inline font-tabular">
@@ -230,7 +227,7 @@ export function StaffRenewalsPage() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="inline text-[rgba(243,240,250,0.52)]">
+                      <dt className="inline text-fg-subtle">
                         {es.circulation.previousDueAt}:{" "}
                       </dt>
                       <dd className="m-0 inline font-tabular">
@@ -239,7 +236,7 @@ export function StaffRenewalsPage() {
                     </div>
                     {row.new_due_at ? (
                       <div>
-                        <dt className="inline text-[rgba(243,240,250,0.52)]">
+                        <dt className="inline text-fg-subtle">
                           {es.circulation.newDueAt}:{" "}
                         </dt>
                         <dd className="m-0 inline font-tabular">
@@ -249,7 +246,7 @@ export function StaffRenewalsPage() {
                     ) : null}
                   </dl>
                   {row.decision_note ? (
-                    <p className="mt-1 text-[0.82rem] text-[rgba(243,240,250,0.68)]">
+                    <p className="mt-1 text-[0.82rem] text-fg-muted">
                       {es.circulation.decisionNote}: {row.decision_note}
                     </p>
                   ) : null}
@@ -297,7 +294,7 @@ export function StaffRenewalsPage() {
                 loading={query.isFetchingNextPage}
                 label={es.staff.queueLoadMore}
               />
-              <p className="mt-2 text-center text-[0.75rem] text-[rgba(243,240,250,0.52)]">
+              <p className="mt-2 text-center text-[0.75rem] text-fg-subtle">
                 {es.staff.queueMorePages}
               </p>
             </>

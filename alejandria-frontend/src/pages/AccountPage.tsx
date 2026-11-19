@@ -26,16 +26,16 @@ export function AccountPage() {
         ].map(([label, value]) => (
           <div
             key={label}
-            className="border-b border-[rgba(243,240,250,0.12)] px-5 py-4 last:border-b-0 sm:border-r sm:[&:nth-child(even)]:border-r-0"
+            className="border-b border-line px-5 py-4 last:border-b-0 sm:border-r sm:[&:nth-child(even)]:border-r-0"
           >
-            <dt className="text-[0.72rem] font-semibold text-[rgba(243,240,250,0.52)]">
+            <dt className="text-[0.72rem] font-semibold text-fg-subtle">
               {label}
             </dt>
-            <dd className="mt-1 break-words text-[0.92rem] text-ink">{value}</dd>
+            <dd className="mt-1 break-words text-[0.92rem] text-fg">{value}</dd>
           </div>
         ))}
-        <div className="border-b border-[rgba(243,240,250,0.12)] px-5 py-4 sm:border-b-0 sm:border-r">
-          <dt className="text-[0.72rem] font-semibold text-[rgba(243,240,250,0.52)]">
+        <div className="border-b border-line px-5 py-4 sm:border-b-0 sm:border-r">
+          <dt className="text-[0.72rem] font-semibold text-fg-subtle">
             {es.account.roles}
           </dt>
           <dd className="mt-2 flex flex-wrap gap-1.5">
@@ -46,14 +46,14 @@ export function AccountPage() {
                 </StatusBadge>
               ))
             ) : (
-              <span className="text-[0.85rem] text-[rgba(243,240,250,0.6)]">
+              <span className="text-[0.85rem] text-fg-subtle">
                 {es.account.noRoles}
               </span>
             )}
           </dd>
         </div>
         <div className="px-5 py-4">
-          <dt className="text-[0.72rem] font-semibold text-[rgba(243,240,250,0.52)]">
+          <dt className="text-[0.72rem] font-semibold text-fg-subtle">
             {es.account.active}
           </dt>
           <dd className="mt-2">
@@ -64,11 +64,11 @@ export function AccountPage() {
         </div>
       </dl>
 
-      <section className="mt-8 border-t border-[rgba(243,240,250,0.16)] pt-6">
-        <h2 className="font-display text-2xl font-semibold text-ink">
+      <section className="mt-8 border-t border-line pt-6">
+        <h2 className="font-display text-2xl font-semibold text-fg">
           {es.account.session}
         </h2>
-        <p className="mt-2 max-w-xl text-[0.88rem] leading-relaxed text-[rgba(243,240,250,0.68)]">
+        <p className="mt-2 max-w-xl text-[0.88rem] leading-relaxed text-fg-muted">
           {es.account.sessionNote}
         </p>
         <Button

@@ -114,14 +114,14 @@ export function AdminUsersPage() {
     <div>
       <PageHeader title={es.admin.usersTitle} description={es.admin.usersIntro} />
 
-      <p className="mb-4 border-l-2 border-brass bg-[rgba(168,134,59,0.1)] px-4 py-3 text-[0.82rem] text-[#5c4818]">
+      <p className="notice notice--warning mb-4">
         {es.admin.firstAdminNote}
       </p>
 
       {message ? (
         <p
           role="status"
-          className="mb-4 border-l-2 border-[#637a68] bg-[rgba(51,69,59,0.08)] px-4 py-3 text-[0.86rem] text-[#2c4034]"
+          className="notice notice--success mb-4"
         >
           {message}
         </p>
@@ -153,14 +153,14 @@ export function AdminUsersPage() {
         />
       ) : (
         <>
-          <div className="divide-y divide-[rgba(243,240,250,0.12)] border border-[rgba(243,240,250,0.14)]">
+          <div className="divide-y divide-line border border-line">
             {visible.map((user) => {
               const self = user.id === me?.id;
               return (
                 <article key={user.id} className="p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="m-0 text-[0.7rem] font-semibold text-[rgba(243,240,250,0.48)]">
+                      <p className="m-0 text-[0.7rem] font-semibold text-fg-subtle">
                         #{user.id} · {formatDate(user.created_at)}
                       </p>
                       <h2 className="mt-0.5 font-display text-xl font-semibold">
@@ -171,7 +171,7 @@ export function AdminUsersPage() {
                           </span>
                         ) : null}
                       </h2>
-                      <p className="m-0 text-[0.82rem] text-[rgba(243,240,250,0.62)]">
+                      <p className="m-0 text-[0.82rem] text-fg-subtle">
                         {user.email}
                       </p>
                     </div>
@@ -187,7 +187,7 @@ export function AdminUsersPage() {
                         </StatusBadge>
                       ))
                     ) : (
-                      <span className="text-[0.78rem] text-[rgba(243,240,250,0.56)]">
+                      <span className="text-[0.78rem] text-fg-subtle">
                         {es.account.noRoles}
                       </span>
                     )}
@@ -204,7 +204,7 @@ export function AdminUsersPage() {
                       {es.admin.editRoles}
                     </Button>
                     {self && user.is_active ? (
-                      <span className="self-center text-[0.76rem] text-[rgba(243,240,250,0.56)]">
+                      <span className="self-center text-[0.76rem] text-fg-subtle">
                         {es.admin.selfDeactivateBlocked}
                       </span>
                     ) : (
@@ -297,7 +297,7 @@ export function AdminUsersPage() {
             return (
               <label
                 key={role}
-                className="flex cursor-pointer items-center gap-3 border border-[rgba(243,240,250,0.16)] px-3 py-2.5 text-[0.9rem]"
+                className="flex cursor-pointer items-center gap-3 border border-line px-3 py-2.5 text-[0.9rem]"
               >
                 <input
                   type="checkbox"
@@ -317,10 +317,10 @@ export function AdminUsersPage() {
             );
           })}
           {selectedRoles.size === 0 ? (
-            <p className="text-[0.82rem] text-oxblood">{es.admin.rolesRequired}</p>
+            <p className="text-[0.82rem] text-danger">{es.admin.rolesRequired}</p>
           ) : null}
           {removingAdmin ? (
-            <p className="border-l-2 border-brass bg-[rgba(168,134,59,0.1)] px-3 py-2 text-[0.82rem] text-[#5c4818]">
+            <p className="notice notice--warning">
               {es.admin.selfRoleWarning}
             </p>
           ) : null}

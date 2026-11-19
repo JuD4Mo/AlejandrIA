@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import {
   BrowserRouter,
+  Navigate,
   Route,
   Routes,
   useLocation,
 } from "react-router-dom";
 import { useAuth } from "@/auth/AuthProvider";
-import { landingPath } from "@/auth/capabilities";
+import { canRead, landingPath } from "@/auth/capabilities";
 import {
   PublicOnly,
   RequireAdmin,
@@ -44,12 +45,15 @@ function ScrollToTop() {
   return null;
 }
 
+/**
+ * "/" is the reading room for readers. Staff-only accounts have no reading
+ * capability (the API answers 403 to /users/me/*), so they are sent to their
+ * own landing page instead of the forbidden screen.
+ */
 function AuthenticatedIndex() {
   const { user } = useAuth();
-  if (user && landingPath(user) === "/staff/requests") {
-    return <StaffRequestsPage />;
-  }
-  return <HomePage />;
+  if (canRead(user)) return <HomePage />;
+  return <Navigate to={landingPath(user)} replace />;
 }
 
 export function App() {
@@ -70,7 +74,7 @@ export function App() {
               </OnboardingGate>
             }
           >
-            <Route index element={<RequireRead><AuthenticatedIndex /></RequireRead>} />
+            <Route index element={<AuthenticatedIndex />} />
             <Route
               path="catalog"
               element={<RequireRead><CatalogPage /></RequireRead>}

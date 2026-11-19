@@ -1,23 +1,23 @@
+import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 type Tone = "neutral" | "good" | "warn" | "bad" | "quiet";
 
 const tones: Record<Tone, string> = {
-  neutral:
-    "border-[rgba(243,240,250,0.25)] bg-[rgba(243,240,250,0.05)] text-ink",
-  good: "border-[rgba(51,69,59,0.4)] bg-[rgba(51,69,59,0.1)] text-[#2c4034]",
-  warn: "border-[rgba(122,95,34,0.45)] bg-[rgba(168,134,59,0.14)] text-[#67501d]",
-  bad: "border-[rgba(107,32,36,0.4)] bg-[rgba(107,32,36,0.1)] text-oxblood",
-  quiet:
-    "border-transparent bg-transparent text-[rgba(243,240,250,0.6)]",
+  neutral: "badge",
+  good: "badge--good",
+  warn: "badge--warn",
+  bad: "badge--bad",
+  quiet: "badge--quiet",
 };
 
+/** Colours come from the surrounding surface (see theme.css `.badge*`). */
 export function StatusBadge({
   children,
   tone = "neutral",
   className,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   tone?: Tone;
   className?: string;
 }) {

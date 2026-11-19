@@ -68,22 +68,6 @@
 .library-empty p { color: rgba(27, 26, 23, 0.72); }
 .library-empty button { color: var(--account-paper); }
 
-.library-success {
-  border-left: 4px solid #6c8a68;
-  background: rgba(232, 228, 216, 0.95);
-  color: #233d2e;
-  padding: 0.8rem 1rem;
-  font-size: 0.86rem;
-}
-
-.library-action-error {
-  border-left-color: var(--account-brass);
-  color: var(--account-paper);
-  background: rgba(74, 47, 32, 0.48);
-}
-
-.library-action-error p { color: rgba(232, 228, 216, 0.78); }
-
 .circulation-tabs {
   display: flex;
   gap: 0.25rem;

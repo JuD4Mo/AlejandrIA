@@ -52,6 +52,21 @@ export function RatingsPage() {
     onError: (error) => setActionError(error),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (input: { bookId: number; rating: number }) =>
+      endpoints.personalization.putRating(input.bookId, { rating: input.rating }),
+    onMutate: () => {
+      setActionError(null);
+      setMessage(null);
+    },
+    onSuccess: () => {
+      setMessage(es.personalization.ratingChanged);
+      void queryClient.invalidateQueries({ queryKey: ["ratings"] });
+      void queryClient.invalidateQueries({ queryKey: ["recommendations"] });
+    },
+    onError: (error) => setActionError(error),
+  });
+
   const ratings = (ratingsQuery.data?.pages ?? []).flatMap((page) => page.data);
 
   return (
@@ -70,14 +85,14 @@ export function RatingsPage() {
       {message ? (
         <p
           role="status"
-          className="library-success mb-4"
+          className="notice notice--success mb-4"
         >
           {message}
         </p>
       ) : null}
       {actionError ? (
         <div className="mb-4">
-          <ErrorState error={actionError} compact className="library-action-error" />
+          <ErrorState error={actionError} compact />
         </div>
       ) : null}
 
@@ -101,7 +116,7 @@ export function RatingsPage() {
         />
       ) : (
         <>
-          <div className="ratings-ledger divide-y divide-[rgba(243,240,250,0.12)]">
+          <div className="ratings-ledger">
             {ratings.map((rating) => (
               <article
                 key={rating.book_id}
@@ -110,13 +125,26 @@ export function RatingsPage() {
                 <div className="min-w-0">
                   <Link
                     to={`/books/${rating.book_id}`}
-                    className="font-display text-xl font-semibold text-ink no-underline hover:text-oxblood"
+                    className="font-display text-xl font-semibold text-fg no-underline hover:text-accent"
                   >
                     {rating.title}
                   </Link>
                   <div className="mt-1 flex flex-wrap items-center gap-3">
-                    <Stars value={rating.rating} readOnly size="sm" />
-                    <span className="text-[0.75rem] text-[rgba(243,240,250,0.56)]">
+                    <Stars
+                      value={
+                        updateMutation.isPending && updateMutation.variables?.bookId === rating.book_id
+                          ? updateMutation.variables.rating
+                          : rating.rating
+                      }
+                      size="sm"
+                      disabled={updateMutation.isPending || removeMutation.isPending}
+                      onChange={(value) => {
+                        if (value !== rating.rating) {
+                          updateMutation.mutate({ bookId: rating.book_id, rating: value });
+                        }
+                      }}
+                    />
+                    <span className="text-[0.75rem] text-fg-subtle">
                       {formatDateTime(rating.updated_at)}
                     </span>
                   </div>

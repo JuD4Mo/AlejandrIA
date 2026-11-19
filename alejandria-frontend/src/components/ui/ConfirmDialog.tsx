@@ -39,8 +39,13 @@ export function ConfirmDialog({
               variant={destructive ? "danger" : "primary"}
               loading={loading}
               onClick={async () => {
-                await onConfirm();
-                setOpen(false);
+                try {
+                  await onConfirm();
+                } catch {
+                  // The caller's mutation reports the error next to the list.
+                } finally {
+                  setOpen(false);
+                }
               }}
             >
               {confirmLabel}
@@ -48,9 +53,7 @@ export function ConfirmDialog({
           </>
         }
       >
-        <p className="text-[0.9rem] text-[rgba(243,240,250,0.7)]">
-          {es.common.confirm} para continuar.
-        </p>
+        {null}
       </Modal>
   );
 }

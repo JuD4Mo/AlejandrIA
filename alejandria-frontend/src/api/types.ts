@@ -121,8 +121,24 @@ export interface BookInput {
   genre_ids: number[];
 }
 
+/**
+ * GET /books and GET /books/{id}. The inventory counts are derived on every
+ * read (migration 009); they are a snapshot, never stored.
+ */
 export interface Book extends BookInput {
   id: number;
+  total_copies: number;
+  available_copies: number;
+  has_copies: boolean;
+  has_available_copies: boolean;
+  loaned_copies: number;
+  reserved_copies: number;
+  non_circulating_copies: number;
+}
+
+/** GET /books adds a keyset cursor; the page after a cursor may be empty. */
+export interface BookPage extends Page<Book> {
+  next_after_id: number | null;
 }
 
 export type NamedKind = "works" | "authors" | "genres";

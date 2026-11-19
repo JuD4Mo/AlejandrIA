@@ -82,10 +82,10 @@ export function OnboardingExperience({
           <p className="text-[0.74rem] font-semibold text-brass-text">
             {es.onboarding.eyebrow}
           </p>
-          <h1 className="display-title mt-2 text-4xl text-ink">
+          <h1 className="display-title mt-2 text-4xl text-fg">
             {es.onboarding.noGenresTitle}
           </h1>
-          <p className="mt-3 text-[0.94rem] leading-relaxed text-[rgba(243,240,250,0.7)]">
+          <p className="mt-3 text-[0.94rem] leading-relaxed text-fg-muted">
             {es.onboarding.noGenresBody}
           </p>
           <Button className="mt-6" onClick={onSkip}>
@@ -115,7 +115,7 @@ export function OnboardingExperience({
             }
             className="absolute inset-0"
           />
-          <p className="absolute inset-x-0 bottom-0 text-center text-[0.78rem] font-semibold tracking-[0.08em] text-[rgba(243,240,250,0.52)]">
+          <p className="absolute inset-x-0 bottom-0 text-center text-[0.78rem] font-semibold tracking-[0.08em] text-fg-subtle">
             {interpolate(es.onboarding.connected, {
               count: connected,
               total: questions.length,
@@ -151,17 +151,17 @@ export function OnboardingExperience({
                           ? "bg-oxblood"
                           : index === step
                             ? "bg-brass"
-                            : "bg-[rgba(243,240,250,0.16)]",
+                            : "bg-fg/15",
                       )}
                     />
                   ))}
                 </div>
               </div>
 
-              <h1 className="display-title mt-4 text-4xl text-ink sm:text-5xl">
+              <h1 className="display-title mt-4 text-4xl text-fg sm:text-5xl">
                 {question.prompt}
               </h1>
-              <p className="mt-2 text-[0.92rem] leading-relaxed text-[rgba(243,240,250,0.68)]">
+              <p className="mt-2 text-[0.92rem] leading-relaxed text-fg-muted">
                 {question.hint}
               </p>
 
@@ -182,7 +182,7 @@ export function OnboardingExperience({
                         "group flex h-full flex-col items-start border px-3.5 py-3 text-left transition-colors",
                         checked
                           ? "border-[rgba(107,32,36,0.42)] bg-[rgba(107,32,36,0.07)]"
-                          : "border-[rgba(243,240,250,0.16)] bg-[rgba(21,21,30,0.6)] hover:border-[rgba(243,240,250,0.32)] hover:bg-surface",
+                          : "border-line bg-wash hover:border-line-strong hover:bg-fg/10",
                       )}
                     >
                       <span className="flex w-full items-start gap-2">
@@ -192,18 +192,18 @@ export function OnboardingExperience({
                             "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border",
                             checked
                               ? "border-oxblood bg-oxblood"
-                              : "border-[rgba(243,240,250,0.34)]",
+                              : "border-line-strong",
                           )}
                         >
                           {checked ? (
-                            <span className="size-1.5 rounded-full bg-[#f3f0fa]" />
+                            <span className="size-1.5 rounded-full bg-ficha" />
                           ) : null}
                         </span>
-                        <span className="text-[0.9rem] font-semibold leading-snug text-ink">
+                        <span className="text-[0.9rem] font-semibold leading-snug text-fg">
                           {option.label}
                         </span>
                       </span>
-                      <span className="mt-1 pl-6 text-[0.78rem] leading-snug text-[rgba(243,240,250,0.6)]">
+                      <span className="mt-1 pl-6 text-[0.78rem] leading-snug text-fg-subtle">
                         {option.note}
                       </span>
                     </button>
@@ -217,7 +217,7 @@ export function OnboardingExperience({
                 </div>
               ) : null}
 
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[rgba(243,240,250,0.14)] pt-4">
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -265,12 +265,12 @@ function Shell({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-[rgba(243,240,250,0.14)] px-4 py-4 sm:px-6">
+      <header className="border-b border-line px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <p className="m-0 flex items-center gap-2.5">
             <span
               aria-hidden="true"
-              className="relative flex size-8 items-center justify-center border border-[rgba(243,240,250,0.3)] font-display text-lg font-semibold text-oxblood"
+              className="relative flex size-8 items-center justify-center border border-line-strong font-display text-lg font-semibold text-danger"
             >
               A
               <span className="absolute inset-x-1.5 bottom-1 h-px bg-brass" />
@@ -285,7 +285,7 @@ function Shell({
         </div>
       </header>
       <main className="flex flex-1 flex-col justify-center">{children}</main>
-      <footer className="px-4 pb-5 text-center text-[0.72rem] text-[rgba(243,240,250,0.5)]">
+      <footer className="px-4 pb-5 text-center text-[0.72rem] text-fg-subtle">
         {es.onboarding.skipHint}
       </footer>
     </div>
@@ -298,13 +298,13 @@ function Intro({ onStart }: { onStart: () => void }) {
       <p className="m-0 text-[0.74rem] font-semibold text-brass-text">
         {es.onboarding.eyebrow}
       </p>
-      <h1 className="display-title mt-3 text-5xl text-ink sm:text-6xl">
+      <h1 className="display-title mt-3 text-5xl text-fg sm:text-6xl">
         {es.onboarding.introTitle}
       </h1>
-      <p className="mt-4 max-w-xl text-[0.98rem] leading-relaxed text-[rgba(243,240,250,0.72)]">
+      <p className="mt-4 max-w-xl text-[0.98rem] leading-relaxed text-fg-muted">
         {es.onboarding.introBody}
       </p>
-      <p className="mt-3 max-w-xl text-[0.82rem] leading-relaxed text-[rgba(243,240,250,0.56)]">
+      <p className="mt-3 max-w-xl text-[0.82rem] leading-relaxed text-fg-subtle">
         {es.onboarding.introNote}
       </p>
       <Button size="lg" className="mt-6" onClick={onStart}>
@@ -329,30 +329,30 @@ function Complete({
       <p className="m-0 text-[0.74rem] font-semibold text-brass-text">
         {es.onboarding.eyebrow}
       </p>
-      <h1 className="display-title mt-3 text-5xl text-ink sm:text-6xl">
+      <h1 className="display-title mt-3 text-5xl text-fg sm:text-6xl">
         {es.onboarding.completeTitle}
       </h1>
-      <p className="mt-4 text-[0.96rem] leading-relaxed text-[rgba(243,240,250,0.72)]">
+      <p className="mt-4 text-[0.96rem] leading-relaxed text-fg-muted">
         {matchedGenres > 0
           ? es.onboarding.completeBody
           : es.onboarding.completeNoMatches}
       </p>
-      <div className="mt-5 border-t border-[rgba(243,240,250,0.14)] pt-4">
-        <p className="m-0 text-[0.72rem] font-semibold text-[rgba(243,240,250,0.52)]">
+      <div className="mt-5 border-t border-line pt-4">
+        <p className="m-0 text-[0.72rem] font-semibold text-fg-subtle">
           {es.onboarding.selectedLabel}
         </p>
         <ul className="mt-2 flex flex-wrap gap-2 p-0">
           {labels.map((label) => (
             <li
               key={label}
-              className="list-none border border-[rgba(168,134,59,0.34)] bg-[rgba(168,134,59,0.1)] px-2.5 py-1 text-[0.78rem] text-[#5c4818]"
+              className="chip list-none"
             >
               {label}
             </li>
           ))}
         </ul>
       </div>
-      <p className="mt-4 text-[0.8rem] text-[rgba(243,240,250,0.56)]">
+      <p className="mt-4 text-[0.8rem] text-fg-subtle">
         {es.onboarding.preferencesNote}
       </p>
       <Button size="lg" className="mt-6" onClick={onEnter}>

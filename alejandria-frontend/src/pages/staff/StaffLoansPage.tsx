@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Field, Select } from "@/components/ui/Field";
-import { BookLabel, CopyLabel, PageLoader } from "@/components/ui/Loading";
+import { Field, Select, inputClass } from "@/components/ui/Field";
+import { BookLabel, CopyLabel, PageLoader, ReaderLabel } from "@/components/ui/Loading";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useBookTitles } from "@/hooks/useNamedLabels";
@@ -94,7 +94,7 @@ export function StaffLoansPage() {
       {message ? (
         <p
           role="status"
-          className="mb-4 border-l-2 border-[#637a68] bg-[rgba(51,69,59,0.08)] px-4 py-3 text-[0.86rem] text-[#2c4034]"
+          className="notice notice--success mb-4"
         >
           {message}
         </p>
@@ -105,7 +105,7 @@ export function StaffLoansPage() {
         </div>
       ) : null}
 
-      <div className="mb-4 flex flex-wrap items-end gap-3 border border-[rgba(243,240,250,0.14)] bg-[rgba(21,21,30,0.6)] p-3">
+      <div className="mb-4 flex flex-wrap items-end gap-3 toolbar-panel p-3">
         <Field label={es.circulation.statusFilter} htmlFor="loan-filter" className="min-w-40">
           <Select
             id="loan-filter"
@@ -124,10 +124,10 @@ export function StaffLoansPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={es.staff.queueSearchPlaceholder}
-            className="w-full rounded-xs border border-[rgba(243,240,250,0.28)] bg-[#101018] px-3 py-2 text-ink placeholder:text-[rgba(243,240,250,0.44)] focus:border-oxblood focus:bg-[#1c1c28]"
+            className={inputClass}
           />
         </Field>
-        <p className="m-0 pb-2 text-[0.75rem] text-[rgba(243,240,250,0.55)]">
+        <p className="m-0 pb-2 text-[0.75rem] text-fg-subtle">
           {es.staff.queueNote}
         </p>
       </div>
@@ -143,7 +143,7 @@ export function StaffLoansPage() {
         />
       ) : (
         <>
-          <div className="divide-y divide-[rgba(243,240,250,0.12)] border border-[rgba(243,240,250,0.14)]">
+          <div className="divide-y divide-line border border-line">
             {visible.map((loan) => (
               <LoanRow
                 key={loan.id}
@@ -162,7 +162,7 @@ export function StaffLoansPage() {
                 loading={query.isFetchingNextPage}
                 label={es.staff.queueLoadMore}
               />
-              <p className="mt-2 text-center text-[0.75rem] text-[rgba(243,240,250,0.52)]">
+              <p className="mt-2 text-center text-[0.75rem] text-fg-subtle">
                 {es.staff.queueMorePages}
               </p>
             </>
@@ -187,16 +187,14 @@ function LoanRow({
     <article className="p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="m-0 text-[0.72rem] font-semibold text-[rgba(243,240,250,0.52)]">
+          <p className="m-0 text-[0.72rem] font-semibold text-fg-subtle">
             {es.circulation.loanReference.replace("{{id}}", String(loan.id))}
           </p>
           <h2 className="mt-0.5 font-display text-xl font-semibold">
             <BookLabel bookId={loan.book_id} />
           </h2>
-          <p className="m-0 text-[0.8rem] text-[rgba(243,240,250,0.62)]">
-            {es.circulation.unknownReader.replace("{{id}}", String(loan.user_id))}
-            {" · "}
-            {es.circulation.unknownCopy.replace("{{id}}", String(loan.copy_id))}
+          <p className="m-0 text-[0.8rem] text-fg-subtle">
+            <ReaderLabel userId={loan.user_id} />
             {" · "}
             <CopyLabel bookId={loan.book_id} copyId={loan.copy_id} />
           </p>
@@ -213,7 +211,7 @@ function LoanRow({
       </div>
       <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[0.8rem]">
         <div>
-          <dt className="inline text-[rgba(243,240,250,0.52)]">
+          <dt className="inline text-fg-subtle">
             {es.circulation.deliveredAt}:{" "}
           </dt>
           <dd className="m-0 inline font-tabular">
@@ -221,14 +219,14 @@ function LoanRow({
           </dd>
         </div>
         <div>
-          <dt className="inline text-[rgba(243,240,250,0.52)]">
+          <dt className="inline text-fg-subtle">
             {es.circulation.dueAt}:{" "}
           </dt>
           <dd className="m-0 inline font-tabular">{formatDate(loan.due_at)}</dd>
         </div>
         {loan.returned_at ? (
           <div>
-            <dt className="inline text-[rgba(243,240,250,0.52)]">
+            <dt className="inline text-fg-subtle">
               {es.circulation.returnedAt}:{" "}
             </dt>
             <dd className="m-0 inline font-tabular">

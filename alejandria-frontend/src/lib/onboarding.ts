@@ -1,19 +1,13 @@
 import type { NamedEntity } from "@/api/types";
 import { es } from "@/i18n/es";
+import { genreLabel, normalizeGenre } from "@/lib/genres";
 
 export type OnboardingQuestion = (typeof es.onboarding.questions)[number];
 export type OnboardingOption = OnboardingQuestion["options"][number];
 export type OnboardingAnswers = Record<string, string>;
 
 const STORAGE_PREFIX = "alejandria.onboarding.";
-
-function normalize(value: string): string {
-  return value
-    .trim()
-    .toLocaleLowerCase("es")
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "");
-}
+const normalize = normalizeGenre;
 
 export function optionFor(
   questionId: string,
@@ -39,7 +33,10 @@ export function resolveGenreIds(
 ): number[] {
   const available = new Map<string, number>();
   for (const genre of genres) {
+    // Match the stored Goodreads label and also its Spanish display name, so
+    // genres created by staff in Spanish ("Poesía") still connect.
     available.set(normalize(genre.value), genre.id);
+    available.set(normalize(genreLabel(genre.value)), genre.id);
   }
 
   const ids = new Set<number>();
@@ -47,7 +44,8 @@ export function resolveGenreIds(
     const option = optionFor(question.id, answers[question.id]);
     if (!option) continue;
     for (const name of option.genres) {
-      const id = available.get(normalize(name));
+      const id =
+        available.get(normalize(name)) ?? available.get(normalize(genreLabel(name)));
       if (id !== undefined) ids.add(id);
     }
   }

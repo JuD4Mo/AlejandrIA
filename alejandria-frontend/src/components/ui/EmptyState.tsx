@@ -22,9 +22,9 @@ export function EmptyState({
       )}
     >
       {icon ? <div className="text-brass-text">{icon}</div> : null}
-      <h2 className="font-display text-2xl font-semibold text-ink">{title}</h2>
+      <h2 className="font-display text-2xl font-semibold text-fg">{title}</h2>
       {body ? (
-        <p className="max-w-xl text-[0.92rem] leading-relaxed text-[rgba(243,240,250,0.72)]">
+        <p className="max-w-xl text-[0.92rem] leading-relaxed text-fg-muted">
           {body}
         </p>
       ) : null}

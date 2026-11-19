@@ -3,10 +3,11 @@ import type {
   ActiveInput,
   Book,
   BookInput,
-  Copy,
+  BookPage,
   CopyInput,
   DeletedResult,
   DeliveryInput,
+  GenrePreference,
   IdResult,
   Interaction,
   InteractionInput,
@@ -37,10 +38,17 @@ import type {
 
 export interface BookFilters {
   limit?: number;
+  /** Keep at 0 for deep traversal; use after_id instead (offset is O(n)). */
   offset?: number;
   title?: string;
   author_id?: number;
   genre_id?: number;
+  /** Physical copies registered at all (any status). */
+  has_copies?: boolean;
+  /** At least one copy eligible for circulation right now. */
+  available?: boolean;
+  /** Keyset cursor from a previous `next_after_id`; requires offset 0. */
+  after_id?: number;
 }
 
 export interface PaginationInput {
@@ -76,7 +84,7 @@ export const endpoints = {
 
   books: {
     list: (filters: BookFilters = {}) =>
-      api.get<Page<Book>>("/books", filters),
+      api.get<BookPage>("/books", filters),
     get: (id: number) => api.get<Book>(`/books/${id}`),
     create: (input: BookInput) => api.post<Book>("/books", input),
     update: (id: number, input: BookInput) =>
@@ -149,7 +157,7 @@ export const endpoints = {
 
   personalization: {
     preferences: (params: PaginationInput = {}) =>
-      api.get<Page<import("./types").GenrePreference>>(
+      api.get<Page<GenrePreference>>(
         "/users/me/preferences/genres",
         params,
       ),
@@ -176,4 +184,3 @@ export const endpoints = {
   },
 };
 
-export type CopiesPage = InventorySummary & { copies: Copy[] };

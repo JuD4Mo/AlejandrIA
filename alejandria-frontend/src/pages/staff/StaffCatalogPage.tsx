@@ -20,6 +20,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { es } from "@/i18n/es";
+import { genreLabel } from "@/lib/genres";
 
 const PAGE_SIZE = 20;
 type Tab = "books" | NamedKind;
@@ -61,7 +62,7 @@ export function StaffCatalogPage() {
       <div
         role="tablist"
         aria-label={es.staff.catalogTitle}
-        className="mb-6 flex flex-wrap gap-1 border-b border-[rgba(243,240,250,0.16)]"
+        className="mb-6 flex flex-wrap gap-1 border-b border-line"
       >
         {[{ key: "books" as Tab, label: es.staff.catalogTabs.books }, ...namedTabs].map(
           (item) => (
@@ -73,8 +74,8 @@ export function StaffCatalogPage() {
               onClick={() => setTab(item.key)}
               className={
                 tab === item.key
-                  ? "border-b-2 border-oxblood px-3 py-2 text-[0.86rem] font-semibold text-oxblood"
-                  : "border-b-2 border-transparent px-3 py-2 text-[0.86rem] font-semibold text-[rgba(243,240,250,0.6)] hover:text-ink"
+                  ? "border-b-2 border-oxblood px-3 py-2 text-[0.86rem] font-semibold text-danger"
+                  : "border-b-2 border-transparent px-3 py-2 text-[0.86rem] font-semibold text-fg-subtle hover:text-fg"
               }
             >
               {item.label}
@@ -95,6 +96,7 @@ function BooksPanel() {
   const [applied, setApplied] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<unknown>(null);
+  const [deleteBlocked, setDeleteBlocked] = useState(false);
 
   const query = useInfiniteQuery({
     queryKey: ["books", "staff", applied],
@@ -125,6 +127,7 @@ function BooksPanel() {
     mutationFn: (id: number) => endpoints.books.remove(id),
     onMutate: () => {
       setActionError(null);
+      setDeleteBlocked(false);
       setMessage(null);
     },
     onSuccess: () => {
@@ -132,14 +135,9 @@ function BooksPanel() {
       void queryClient.invalidateQueries({ queryKey: ["books"] });
     },
     onError: (error) => {
-      if (
-        error instanceof ApiError &&
-        (error.status === 400 || error.status === 409)
-      ) {
-        setActionError({
-          status: error.status,
-          message: es.staff.deleteBookBlocked,
-        });
+      // SQL RESTRICT (copies, loans, ratings…) surfaces as 400/409.
+      if (error instanceof ApiError && (error.status === 400 || error.status === 409)) {
+        setDeleteBlocked(true);
       } else {
         setActionError(error);
       }
@@ -151,32 +149,24 @@ function BooksPanel() {
       {message ? (
         <p
           role="status"
-          className="mb-4 border-l-2 border-[#637a68] bg-[rgba(51,69,59,0.08)] px-4 py-3 text-[0.86rem] text-[#2c4034]"
+          className="notice notice--success mb-4"
         >
           {message}
         </p>
       ) : null}
+      {deleteBlocked ? (
+        <p role="alert" className="notice notice--error mb-4">
+          {es.staff.deleteBookBlocked}
+        </p>
+      ) : null}
       {actionError ? (
         <div className="mb-4">
-          {typeof actionError === "object" &&
-          actionError !== null &&
-          "status" in actionError &&
-          (actionError as { status: number }).status === 400 ||
-          (actionError as { status: number }).status === 409 ? (
-            <p
-              role="alert"
-              className="border-l-2 border-oxblood bg-[rgba(107,32,36,0.06)] px-4 py-3 text-[0.86rem] text-oxblood"
-            >
-              {es.staff.deleteBookBlocked}
-            </p>
-          ) : (
-            <ErrorState error={actionError} compact />
-          )}
+          <ErrorState error={actionError} compact />
         </div>
       ) : null}
 
       <form
-        className="mb-4 flex flex-wrap items-end gap-2 border border-[rgba(243,240,250,0.14)] bg-[rgba(21,21,30,0.6)] p-3"
+        className="mb-4 flex flex-wrap items-end gap-2 toolbar-panel p-3"
         onSubmit={(event) => {
           event.preventDefault();
           setApplied(search.trim());
@@ -223,7 +213,7 @@ function BooksPanel() {
         />
       ) : (
         <>
-          <div className="divide-y divide-[rgba(243,240,250,0.12)] border border-[rgba(243,240,250,0.14)]">
+          <div className="divide-y divide-line border border-line">
             {books.map((book) => (
               <article
                 key={book.id}
@@ -231,21 +221,22 @@ function BooksPanel() {
               >
                 <Cover title={book.title} size="sm" showInitial={false} />
                 <div className="min-w-0 flex-1">
-                  <p className="m-0 text-[0.7rem] font-semibold text-[rgba(243,240,250,0.48)]">
+                  <p className="m-0 text-[0.7rem] font-semibold text-fg-subtle">
                     #{book.id}
                   </p>
                   <h2 className="mt-0.5 font-display text-xl font-semibold">
                     {book.title}
                   </h2>
-                  <p className="m-0 text-[0.78rem] text-[rgba(243,240,250,0.58)]">
+                  <p className="m-0 text-[0.78rem] text-fg-subtle">
                     {book.publication_year ?? "—"} · {book.language_code ?? "—"} ·{" "}
-                    {book.authors.length} autoría(s) · {book.genre_ids.length} género(s)
+                    {book.authors.length} autoría(s) · {book.genre_ids.length} género(s) ·{" "}
+                    {book.available_copies}/{book.total_copies} ejemplares disponibles
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm" variant="secondary">
                     <Link to={`/staff/catalog/books/${book.id}/copies`}>
-                      {es.staff.copiesTitle.replace("{{title}}", book.title)}
+                      {es.staff.copiesButton.replace("{{count}}", String(book.total_copies))}
                     </Link>
                   </Button>
                   <Button asChild size="sm" variant="secondary">
@@ -391,7 +382,7 @@ function NamedPanel({ kind }: { kind: NamedKind }) {
         {message ? (
           <p
             role="status"
-            className="mb-4 border-l-2 border-[#637a68] bg-[rgba(51,69,59,0.08)] px-4 py-3 text-[0.86rem] text-[#2c4034]"
+            className="notice notice--success mb-4"
           >
             {message}
           </p>
@@ -409,7 +400,7 @@ function NamedPanel({ kind }: { kind: NamedKind }) {
           <EmptyState title={es.common.none} />
         ) : (
           <>
-            <div className="divide-y divide-[rgba(243,240,250,0.12)] border border-[rgba(243,240,250,0.14)]">
+            <div className="divide-y divide-line border border-line">
               {entities.map((entity) => (
                 <div
                   key={entity.id}
@@ -417,9 +408,12 @@ function NamedPanel({ kind }: { kind: NamedKind }) {
                 >
                   <div className="min-w-0">
                     <p className="m-0 font-display text-lg font-semibold">
-                      {entity.value}
+                      {kind === "genres" ? genreLabel(entity.value) : entity.value}
                     </p>
-                    <p className="m-0 text-[0.72rem] text-[rgba(243,240,250,0.5)]">
+                    {kind === "genres" && genreLabel(entity.value) !== entity.value ? (
+                      <p className="m-0 text-[0.72rem] text-fg-subtle">{entity.value}</p>
+                    ) : null}
+                    <p className="m-0 text-[0.72rem] text-fg-subtle">
                       #{entity.id}
                       {entity.goodreads_id
                         ? ` · Goodreads ${entity.goodreads_id}`
@@ -471,7 +465,7 @@ function NamedPanel({ kind }: { kind: NamedKind }) {
       </div>
 
       <form
-        className="h-fit space-y-3 border border-[rgba(243,240,250,0.14)] bg-[rgba(21,21,30,0.6)] p-4"
+        className="h-fit space-y-3 toolbar-panel p-4"
         onSubmit={(event) => {
           event.preventDefault();
           if (name.trim()) createMutation.mutate();

@@ -8,10 +8,13 @@ import { useAuth } from "@/auth/AuthProvider";
 import { canRead, canStaff } from "@/auth/capabilities";
 import { ForYouRecommendations } from "@/components/recommendations/ForYouRecommendations";
 import { Button } from "@/components/ui/Button";
+import { BookLabel } from "@/components/ui/Loading";
+import { favoriteBooks, recentlyViewed, useRecentInteractions } from "@/hooks/useFavorites";
+import type { Interaction } from "@/api/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { es } from "@/i18n/es";
-import { formatDateTime, isOverdueDueAt } from "@/lib/dates";
+import { formatDate, formatDateTime, isOverdueDueAt } from "@/lib/dates";
 import { FlipBook } from "./FlipBook";
 import "./home-book.css";
 
@@ -57,7 +60,9 @@ function Slot({
         }}
       />
       <div>
-        <p>{fill(es.homeBook.loanN, { n })}</p>
+        <p>
+          {fill(es.homeBook.loanN, { n })} · <BookLabel bookId={loan.book_id} inline />
+        </p>
         <p>
           {fill(es.homeBook.dueOn, { date: formatDateTime(loan.due_at) })}{" "}
           {isOverdueDueAt(loan.due_at, loan.returned_at) ? (
@@ -76,6 +81,11 @@ export function HomePage() {
   const reader = canRead(user);
   const reduced = useReducedMotion() ?? false;
   const recommendationsTitle = useRef<HTMLHeadingElement>(null);
+
+  const interactionsQuery = useRecentInteractions(reader);
+  const events = interactionsQuery.data?.data ?? [];
+  const favorites = [...favoriteBooks(events).values()].slice(0, 8);
+  const recent = recentlyViewed(events, 8);
 
   const loansQuery = useQuery({
     queryKey: ["circulation", "loans", "home"],
@@ -271,8 +281,23 @@ export function HomePage() {
         />
       </section>
 
+      <div className="grid gap-6 md:grid-cols-2">
+        <ReadingList
+          title={es.personalization.favoritesTitle}
+          empty={es.personalization.favoritesEmpty}
+          items={favorites}
+          loading={interactionsQuery.isPending}
+        />
+        <ReadingList
+          title={es.personalization.recentTitle}
+          empty={es.personalization.recentEmpty}
+          items={recent}
+          loading={interactionsQuery.isPending}
+        />
+      </div>
+
       <section>
-        <div className="mb-5 border-b border-[rgba(243,240,250,0.16)] pb-3">
+        <div className="mb-5 border-b border-line pb-3">
           <h2
             ref={recommendationsTitle}
             tabIndex={-1}
@@ -280,12 +305,51 @@ export function HomePage() {
           >
             {es.home.recommendations}
           </h2>
-          <p className="mt-1 max-w-2xl text-[0.88rem] text-[rgba(243,240,250,0.64)]">
+          <p className="mt-1 max-w-2xl text-[0.88rem] text-fg-subtle">
             {es.home.recommendationsIntro}
           </p>
         </div>
         <ForYouRecommendations limit={6} />
       </section>
     </div>
+  );
+}
+
+function ReadingList({
+  title,
+  empty,
+  items,
+  loading,
+}: {
+  title: string;
+  empty: string;
+  items: Interaction[];
+  loading: boolean;
+}) {
+  return (
+    <section className="paper-panel px-5 py-4">
+      <h2 className="font-reading text-xl font-semibold text-fg">{title}</h2>
+      {loading ? (
+        <p className="mt-2 text-[0.85rem] text-fg-subtle">{es.common.loading}</p>
+      ) : items.length === 0 ? (
+        <p className="mt-2 text-[0.85rem] text-fg-muted">{empty}</p>
+      ) : (
+        <ul className="mt-2 divide-y divide-line p-0">
+          {items.map((item) => (
+            <li key={item.book_id} className="list-none">
+              <Link
+                to={`/books/${item.book_id}`}
+                className="flex items-baseline justify-between gap-3 py-2 text-fg no-underline hover:text-accent"
+              >
+                <span className="min-w-0 truncate font-reading font-semibold">{item.title}</span>
+                <span className="shrink-0 font-tabular text-[0.72rem] text-fg-subtle">
+                  {formatDate(item.occurred_at)}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
