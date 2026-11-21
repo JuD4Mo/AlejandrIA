@@ -138,3 +138,32 @@ func TestCatalogCursorAndInventoryFilters(t *testing.T) {
 		t.Fatal("available physical book not found")
 	}
 }
+
+func TestNegativeInventoryFiltersDistinguishAbsentAndOccupied(t *testing.T) {
+	f := setup(t)
+	c := catalog.NewService(catalog.NewRepository(f.pool))
+	book, e := c.Book(f.ctx, f.book)
+	must(t, e)
+	no := false
+	rows, e := c.Books(f.ctx, catalog.Filter{Title: book.Title, HasCopies: &no, Limit: 10})
+	must(t, e)
+	if len(rows) != 0 {
+		t.Fatal("existing copies matched physical absence")
+	}
+	rows, e = c.Books(f.ctx, catalog.Filter{Title: book.Title, Available: &no, Limit: 10})
+	must(t, e)
+	if len(rows) != 0 {
+		t.Fatal("available copy matched unavailable filter")
+	}
+	f.loan(t, f.a, f.book, f.copy)
+	rows, e = c.Books(f.ctx, catalog.Filter{Title: book.Title, Available: &no, Limit: 10})
+	must(t, e)
+	if len(rows) != 1 || rows[0].AvailableCopies != 0 {
+		t.Fatal("loaned book missing from unavailable filter")
+	}
+	rows, e = c.Books(f.ctx, catalog.Filter{Title: book.Title, HasCopies: &no, Limit: 10})
+	must(t, e)
+	if len(rows) != 0 {
+		t.Fatal("occupied copy confused with absence")
+	}
+}

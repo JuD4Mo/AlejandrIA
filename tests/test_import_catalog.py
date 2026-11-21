@@ -56,12 +56,12 @@ def test_schema_validation_rejects_wrong_id_type(catalog_source: Path) -> None:
         source_manifest(catalog_source)
 
 
-@pytest.mark.skipif(not os.getenv("CATALOG_TEST_DATABASE_URL"), reason="Requires a disposable schema-9 PostgreSQL database")
+@pytest.mark.skipif(not os.getenv("CATALOG_TEST_DATABASE_URL"), reason="Requires a disposable PostgreSQL database with schema >= 9")
 def test_import_resume_failure_idempotency_and_manual_preservation(catalog_source: Path, tmp_path: Path) -> None:
     dsn = os.environ["CATALOG_TEST_DATABASE_URL"]
     with psycopg.connect(dsn, autocommit=True) as connection:
         assert connection.info.dbname.startswith("test_")
-        assert connection.execute("SELECT version FROM schema_version").fetchone()[0] == 9
+        assert connection.execute("SELECT version FROM schema_version").fetchone()[0] >= 9
         assert connection.execute("SELECT count(*) FROM books").fetchone()[0] == 0, "Use a dedicated empty test database"
         work = connection.execute("INSERT INTO works(title) VALUES('Curated work') RETURNING id").fetchone()[0]
         manual = connection.execute("INSERT INTO books(title) VALUES('Manual book') RETURNING id").fetchone()[0]

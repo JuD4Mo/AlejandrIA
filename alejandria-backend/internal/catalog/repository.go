@@ -101,18 +101,18 @@ func bookPageQuery(f Filter) (string, []any) {
 		add(`b.id>$%d`, f.AfterID)
 	}
 	if f.HasCopies != nil {
-		op := "IN"
-		if !*f.HasCopies {
-			op = "NOT IN"
+		if *f.HasCopies {
+			where = append(where, `b.id IN (SELECT book_id FROM book_copies)`)
+		} else {
+			where = append(where, `NOT EXISTS(SELECT 1 FROM book_copies c WHERE c.book_id=b.id)`)
 		}
-		where = append(where, `b.id `+op+` (SELECT book_id FROM book_copies)`)
 	}
 	if f.Available != nil {
-		op := "IN"
-		if !*f.Available {
-			op = "NOT IN"
+		if *f.Available {
+			where = append(where, `b.id IN (SELECT c.book_id FROM book_copies c WHERE `+bookAvailable+`)`)
+		} else {
+			where = append(where, `NOT EXISTS(SELECT 1 FROM book_copies c WHERE c.book_id=b.id AND `+bookAvailable+`)`)
 		}
-		where = append(where, `b.id `+op+` (SELECT c.book_id FROM book_copies c WHERE `+bookAvailable+`)`)
 	}
 	args = append(args, f.Limit, f.Offset)
 	return fmt.Sprintf(`WITH page AS MATERIALIZED (SELECT b.* FROM books b WHERE %s ORDER BY b.id LIMIT $%d OFFSET $%d) `, strings.Join(where, " AND "), len(args)-1, len(args)) + bookFields + ` FROM page b ORDER BY b.id`, args
