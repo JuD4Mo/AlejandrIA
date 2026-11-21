@@ -33,6 +33,7 @@ services:
       APP_AUTH_SECRET: ${APP_AUTH_SECRET:?Define APP_AUTH_SECRET in .env}
       APP_RECOMMENDATION_URL: ${APP_RECOMMENDATION_URL:-http://recommendations:8000}
       APP_RECOMMENDATION_TIMEOUT: ${APP_RECOMMENDATION_TIMEOUT:-8s}
+      APP_RECOMMENDATION_FOLD_IN_ENABLED: ${FOLD_IN_ENABLED:-true}
       APP_DATABASE_HOST: postgres
       APP_DATABASE_PORT: "5432"
       APP_DATABASE_USER: ${POSTGRES_USER:-alejandria}
@@ -52,6 +53,28 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "--max-time", "3", "http://127.0.0.1:8080/health/ready"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+  frontend:
+    build:
+      context: ./alejandria-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      start_period: 5s
+      interval: 10s
+      timeout: 3s
+      retries: 3
     restart: unless-stopped
   recommendations:
     build:

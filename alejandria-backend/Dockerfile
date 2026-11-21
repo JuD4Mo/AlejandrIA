@@ -8,6 +8,7 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/api ./cmd/api && \
     CGO_ENABLED=0 GOBIN=/out go install github.com/jackc/tern/v2@v2.4.1
 
 FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN useradd --uid 10001 --no-create-home app
 WORKDIR /app
 COPY --from=build /out/api /out/admin /out/tern /app/

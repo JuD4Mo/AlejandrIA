@@ -1,0 +1,15 @@
+# Contexto exclusivo para compilar la UI; no env, dependencias locales ni borradores.
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!vite.config.ts
+!index.html
+!src/
+!src/**
+!public/
+!public/**
+!docker/
+!docker/nginx.conf
+**/*.local
+**/.env*
