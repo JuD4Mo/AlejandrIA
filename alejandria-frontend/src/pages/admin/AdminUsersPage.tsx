@@ -180,6 +180,9 @@ export function AdminUsersPage() {
                     </StatusBadge>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
+                    {user.recommendation_profile === "goodreads_test" && (
+                      <StatusBadge tone="neutral">Perfil Goodreads de prueba</StatusBadge>
+                    )}
                     {user.roles.length ? (
                       user.roles.map((role) => (
                         <StatusBadge key={role} tone="neutral">

@@ -54,6 +54,8 @@ export interface ApiErrorBody {
 
 /** GET /auth/me; POST /auth/register (201); GET /users rows. */
 export interface User {
+	/** Cuenta local normal o simulación operativa explícita de un perfil histórico. */
+	recommendation_profile?: "local" | "goodreads_test";
   id: number;
   email: string;
   display_name: string;
@@ -362,6 +364,25 @@ export interface RatingInput {
   rating: number;
 }
 
+export interface HistoricalRating {
+  goodreads_book_id: string;
+  local_book_id: number | null;
+  title: string | null;
+  authors: string[];
+  genres: string[];
+  rating: number;
+}
+
+export interface HistoricalRatings {
+  source: "goodreads_train";
+  model_version: string;
+  total: number;
+  positive_count: number;
+  limit: number;
+  offset: number;
+  data: HistoricalRating[];
+}
+
 /**
  * Backend allow-list from migration 006 / InteractionInput:
  * view, recommendation_click, favorite_added, favorite_removed.
@@ -421,6 +442,18 @@ export interface RecommendationItem {
 }
 
 export interface RecommendationResponse {
+  profile_origin?: "goodreads_test" | "local_fold_in";
+  fold_in?: {
+    status: "pending" | "processing" | "ready" | "insufficient" | "error" | "stale";
+    reason?: string;
+    input_count: number;
+    matched_count: number;
+    positive_count: number;
+    minimum_ratings: number;
+    revision: number;
+    processed_revision: number;
+    updated_at?: string;
+  };
   status: RecommendationStatus;
   /** Present for preferences_required / no_content_matches. */
   message?: string;

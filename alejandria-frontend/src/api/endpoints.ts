@@ -22,6 +22,7 @@ import type {
   NamedKind,
   Page,
   Rating,
+  HistoricalRatings,
   RatingInput,
   RecommendationResponse,
   RegisterInput,
@@ -171,6 +172,8 @@ export const endpoints = {
       api.delete<DeletedResult>(`/users/me/preferences/genres/${genreId}`),
     ratings: (params: PaginationInput = {}) =>
       api.get<Page<Rating>>("/users/me/ratings", params),
+    historicalRatings: (params: PaginationInput = {}) =>
+      api.get<HistoricalRatings>("/users/me/ratings/historical", params),
     putRating: (bookId: number, input: RatingInput) =>
       api.put<Rating>(`/users/me/ratings/${bookId}`, input),
     deleteRating: (bookId: number) =>
@@ -181,6 +184,9 @@ export const endpoints = {
       api.post<Interaction>("/users/me/interactions", input),
     recommendations: (limit = 10) =>
       api.get<RecommendationResponse>("/users/me/recommendations", { limit }),
+    refreshRecommendations: (limit = 10, currentBookIds: string[] = []) =>
+      api.post<RecommendationResponse>("/users/me/recommendations/refresh", {
+        current_book_ids: currentBookIds,
+      }, { query: { limit } }),
   },
 };
-

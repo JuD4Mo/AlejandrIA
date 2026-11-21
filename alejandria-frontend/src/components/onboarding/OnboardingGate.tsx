@@ -34,7 +34,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [done, setDone] = useState(false);
 
-  const eligible = Boolean(user && canRead(user) && !canStaff(user));
+  const eligible = Boolean(user && canRead(user) && !canStaff(user) && user.recommendation_profile !== "goodreads_test");
   const firstVisit = Boolean(
     user && eligible && !done && !isOnboardingComplete(user.id),
   );

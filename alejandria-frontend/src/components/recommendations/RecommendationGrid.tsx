@@ -22,7 +22,7 @@ export function RecommendationGrid({
     return (
       <EmptyState
         title={es.recommendations.noMatchesTitle}
-        body={es.recommendations.noMatchesBody}
+        body={response.message ?? es.recommendations.noMatchesBody}
       />
     );
   }

@@ -1,6 +1,8 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { endpoints } from "@/api/endpoints";
+import { useAuth } from "@/auth/AuthProvider";
+import { HistoricalRatingsPanel } from "@/components/recommendations/HistoricalRatingsPanel";
 import { LibrarySpines } from "@/components/LibrarySpines";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -20,11 +22,15 @@ const PAGE_SIZE = 20;
 export function RatingsPage() {
   useDocumentTitle(es.routeTitles.ratings);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const hasHistorical = user?.recommendation_profile === "goodreads_test";
+  const [view, setView] = useState<"historical" | "local">(() => hasHistorical ? "historical" : "local");
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<unknown>(null);
 
   const ratingsQuery = useInfiniteQuery({
-    queryKey: ["ratings", "me", "list"],
+    queryKey: ["ratings", "me", user?.id, "list"],
+    enabled: !hasHistorical || view === "local",
     queryFn: ({ pageParam }) =>
       endpoints.personalization.ratings({
         limit: PAGE_SIZE,
@@ -81,6 +87,19 @@ export function RatingsPage() {
         }
       />
       <LibrarySpines />
+
+      {hasHistorical && (
+        <div className="mb-6 flex flex-wrap gap-2" role="tablist" aria-label={es.personalization.ratingsOrigin}>
+          <Button role="tab" aria-selected={view === "historical"} variant={view === "historical" ? "primary" : "secondary"} onClick={() => setView("historical")}>
+            {es.personalization.historicalRatingsTab}
+          </Button>
+          <Button role="tab" aria-selected={view === "local"} variant={view === "local" ? "primary" : "secondary"} onClick={() => setView("local")}>
+            {es.personalization.localRatingsTab}
+          </Button>
+        </div>
+      )}
+
+      {hasHistorical && view === "historical" ? <HistoricalRatingsPanel /> : <>
 
       {message ? (
         <p
@@ -173,6 +192,7 @@ export function RatingsPage() {
           ) : null}
         </>
       )}
+      </>}
     </div>
   );
 }

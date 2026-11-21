@@ -314,7 +314,7 @@ export const es = {
     copiesLoadMore: "Cargar más ejemplares",
     similarTitle: "Libros similares",
     similarIntro:
-      "Similitud de contenido calculada sobre la correspondencia del libro en Goodreads.",
+      "Otras obras similares por contenido: excluimos las ediciones de la obra abierta y mostramos una edición por cada obra identificada en Goodreads.",
     backToCatalog: "Volver al catálogo",
     addedToCatalog: "En nuestro catálogo",
     notInCatalog: "No está en nuestro catálogo",
@@ -434,6 +434,14 @@ export const es = {
     noFiltered: "Ningún registro coincide con el filtro.",
   },
   personalization: {
+    ratingsOrigin: "Origen de las valoraciones",
+    historicalRatingsTab: "Historial Goodreads",
+    localRatingsTab: "Mis valoraciones en AlejandrIA",
+    historicalRatingsNotice:
+      "Perfil simulado de prueba. Este historial es de solo lectura y contiene únicamente las valoraciones de entrenamiento usadas por el modelo V2; no incluye validación ni prueba. Se ordena de mayor a menor valoración. Las nuevas valoraciones en AlejandrIA se guardan por separado.",
+    historicalRatingsSummary: "{{total}} valoraciones de entrenamiento · {{positive}} positivas (4–5 estrellas)",
+    noHistoricalRatings: "Este perfil no tiene valoraciones de entrenamiento disponibles.",
+    historicalRatingSource: "Goodreads · entrenamiento · solo lectura",
     preferencesTitle: "Preferencias de lectura",
     preferencesIntro:
       "Elige los géneros que quieres ver en tus recomendaciones. Puedes seleccionar hasta 100. Los cambios se guardan de una vez.",
@@ -695,7 +703,20 @@ export const es = {
     ],
   },
   recommendations: {
+    foldInReady: "Híbrida local experimental: tu perfil se ha adaptado a tus valoraciones. Su calidad aún está en evaluación.",
+    foldInUpdating: "Estamos actualizando tu perfil con tus valoraciones. Mientras tanto, utilizamos contenido.",
+    foldInRetry: "La adaptación de tu perfil se reintentará automáticamente. Puedes seguir utilizando recomendaciones por contenido.",
+    foldInPositiveRequired: "Para combinar contenido con tu perfil local hace falta al menos un libro valorado con 4 o 5 estrellas y contenido disponible.",
+    foldInInsufficient: "Por ahora utilizamos contenido. Tienes {{matched}} de las {{minimum}} valoraciones sobre libros con representación colaborativa que requiere la política experimental.",
+    historicalTestProfile:
+      "Modo de prueba: recomendaciones híbridas con un perfil histórico de Goodreads. Tus valoraciones locales excluyen libros, pero todavía no ajustan ese perfil histórico.",
     title: "Recomendaciones",
+    generateNew: "Generar nuevas recomendaciones",
+    generating: "Generando recomendaciones…",
+    regenerateHint:
+      "Descubre otra selección según tus intereses. Excluimos los libros valorados, prestados y las 500 recomendaciones más recientes de tu cuenta.",
+    previousResults:
+      "No se pudieron actualizar. Conservamos las últimas recomendaciones recibidas.",
     forYou: "Para ti",
     similar: "Similares",
     basedOnPreferences: "Según tus preferencias y valoraciones",
