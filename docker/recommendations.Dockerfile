@@ -6,7 +6,7 @@ RUN pip install --no-cache-dir torch==2.14.1 --index-url https://download.pytorc
     pip install --no-cache-dir -r /app/requirements.txt
 RUN useradd --uid 10001 --no-create-home app
 COPY src/api/ /app/api/
-COPY src/ml/__init__.py src/ml/inference.py src/ml/collaborative.py src/ml/recommendation.py /app/ml/
+COPY src/ml/__init__.py src/ml/inference.py src/ml/collaborative.py src/ml/recommendation.py src/ml/fold_in.py src/ml/fold_in_policy.json /app/ml/
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 RECOMMENDER_PROJECT_ROOT=/srv/models RECOMMENDER_DEVICE=cpu RECOMMENDER_MODEL_VERSION=v2
 USER 10001
 EXPOSE 8000

@@ -1,0 +1,9 @@
+{
+  "algorithm": "ridge_fold_in_v1",
+  "regularization": 0.01,
+  "content_weight": 0.9,
+  "minimum_ratings": 5,
+  "policy_status": "experimental_validation_selected",
+  "calibration_seed": 2026,
+  "calibration_users": 100
+}

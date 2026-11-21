@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.config import Settings
 from api.routes.health import router as health_router
 from api.routes.recommendations import router as recommendations_router
+from api.routes.fold_in import router as fold_in_router
 from ml.inference import RecommendationEngine
 
 
@@ -64,6 +65,7 @@ def create_app(settings: Settings | None = None, engine_loader: EngineLoader = R
 
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(recommendations_router, prefix="/api/v1")
+    app.include_router(fold_in_router, prefix="/api/v1")
     return app
 
 

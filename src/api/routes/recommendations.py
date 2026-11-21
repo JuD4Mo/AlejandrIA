@@ -12,7 +12,7 @@ import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from api.dependencies import RecommendationEngineProtocol, get_engine
-from api.schemas.recommendations import PreferencesRequest, RecommendationItem, RecommendationsResponse
+from api.schemas.recommendations import HistoricalHybridRequest, HistoricalRating, HistoricalRatingsRequest, HistoricalRatingsResponse, PreferencesRequest, RecommendationItem, RecommendationsResponse
 
 
 LOGGER = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ def execute(operation: str, recommendation_type: str, call: Callable[[], pd.Data
 
 @router.post("/preferences", response_model=RecommendationsResponse)
 def preferences(payload: PreferencesRequest, engine: Engine) -> RecommendationsResponse:
-    return execute("preferences", "content", lambda: engine.recommend_new_user(payload.preferences.as_engine_input(), payload.limit), "content_catalog")
+    return execute("preferences", "content", lambda: engine.recommend_new_user(payload.preferences.as_engine_input(), payload.limit, exclude_book_ids=payload.exclude_book_ids), "content_catalog")
 
 
 @router.get("/similar/{book_id}", response_model=RecommendationsResponse)
@@ -86,6 +86,32 @@ def similar(book_id: str, engine: Engine, limit: Limit = 10) -> RecommendationsR
 @router.get("/hybrid/{goodreads_user_id}", response_model=RecommendationsResponse)
 def hybrid(goodreads_user_id: str, engine: Engine, limit: Limit = 10) -> RecommendationsResponse:
     return execute("hybrid", "hybrid", lambda: engine.recommend_hybrid(goodreads_user_id, limit), "collaborative_catalog")
+
+
+@router.post("/hybrid", response_model=RecommendationsResponse)
+def historical_hybrid(payload: HistoricalHybridRequest, engine: Engine) -> RecommendationsResponse:
+    return execute("historical_hybrid", "hybrid", lambda: engine.recommend_hybrid(
+        payload.goodreads_user_id, payload.limit, exclude_book_ids=payload.exclude_book_ids,
+    ), "collaborative_catalog")
+
+
+@router.post("/history", response_model=HistoricalRatingsResponse)
+def historical_ratings(payload: HistoricalRatingsRequest, engine: Engine) -> HistoricalRatingsResponse:
+    try:
+        frame, total, positives = engine.historical_ratings(payload.goodreads_user_id, payload.limit, payload.offset)
+        rows = [HistoricalRating(
+            goodreads_book_id=str(row["book_id"]), rating=row["rating"],
+            title=None if pd.isna(row.get("title")) else str(row["title"]),
+            authors=split_metadata(row.get("authors")), genres=split_metadata(row.get("genres")),
+        ) for row in frame.to_dict(orient="records")]
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Identificador histórico no encontrado.") from None
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Historial o paginación no válidos.") from None
+    except Exception:
+        LOGGER.exception("Error interno al consultar historial histórico")
+        raise HTTPException(status_code=500, detail="No se pudo consultar el historial histórico.") from None
+    return HistoricalRatingsResponse(total=total, positive_count=positives, limit=payload.limit, offset=payload.offset, data=rows)
 
 
 @router.get("/content-only/{goodreads_user_id}", response_model=RecommendationsResponse)

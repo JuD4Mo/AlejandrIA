@@ -14,6 +14,12 @@ from api.main import create_app
 
 
 class FakeEngine:
+    def historical_ratings(self, user_id: str, limit: int = 20, offset: int = 0):
+        if user_id == "missing":
+            raise KeyError(user_id)
+        frame = self._frame("unused").rename(columns={"score": "rating"})
+        frame["rating"] = 5
+        return frame.iloc[offset:offset + limit], 1, 1
     def _frame(self, model: str, scope: str | None = None) -> pd.DataFrame:
         data: dict[str, object] = {
             "book_id": ["00123"], "title": ["Libro de prueba"], "authors": ["Autora | Coautor"],
@@ -23,20 +29,22 @@ class FakeEngine:
             data.update({"score_scope": [scope], "availability": [scope], "content_score": [np.float32(0.7)], "collaborative_score": [np.nan] if scope == "content_only_catalog" else [np.float32(3.8)]})
         return pd.DataFrame(data)
 
-    def recommend_new_user(self, preferences: dict[str, list[str]], k: int) -> pd.DataFrame:
+    def recommend_new_user(self, preferences: dict[str, list[str]], k: int, exclude_book_ids: list[str] | None = None) -> pd.DataFrame:
         if preferences.get("keywords") == ["error"]:
             raise RuntimeError("no exponer")
-        return self._frame("content_cold_start")
+        frame = self._frame("content_cold_start")
+        return frame[~frame.book_id.isin(exclude_book_ids or [])]
 
     def recommend_similar(self, book_id: str, k: int) -> pd.DataFrame:
         if book_id == "missing":
             raise KeyError(book_id)
         return self._frame("content_similar")
 
-    def recommend_hybrid(self, user_id: str, k: int) -> pd.DataFrame:
+    def recommend_hybrid(self, user_id: str, k: int, exclude_book_ids: list[str] | None = None) -> pd.DataFrame:
         if user_id == "missing":
             raise KeyError(user_id)
-        return self._frame("hybrid", "collaborative_catalog")
+        frame = self._frame("hybrid", "collaborative_catalog")
+        return frame[~frame.book_id.isin(exclude_book_ids or [])]
 
     def recommend_content_only(self, user_id: str, k: int) -> pd.DataFrame:
         if user_id == "no-positive":
@@ -89,6 +97,37 @@ def test_not_found_internal_error_and_content_only_scope() -> None:
     assert content_only.json()["recommendations"][0]["collaborative_score"] is None
     assert error.status_code == 500
     assert error.json()["detail"] == "Error interno al generar recomendaciones."
+
+
+def test_preferences_forward_original_string_exclusions() -> None:
+    with TestClient(app_with_fake_engine()) as client:
+        response = client.post("/api/v1/recommendations/preferences", json={
+            "preferences": {"genres": ["poetry"]}, "exclude_book_ids": ["00123"],
+        })
+    assert response.status_code == 200
+    assert response.json()["recommendations"] == []
+
+
+def test_historical_hybrid_keeps_scope_exclusions_and_unknown_user_errors() -> None:
+    with TestClient(app_with_fake_engine()) as client:
+        response = client.post("/api/v1/recommendations/hybrid", json={"goodreads_user_id": "u1", "exclude_book_ids": ["00123"]})
+        assert response.status_code == 200
+        assert response.json()["recommendation_type"] == "hybrid"
+        assert response.json()["recommendations"] == []
+        assert client.post("/api/v1/recommendations/hybrid", json={"goodreads_user_id": "missing"}).status_code == 404
+        assert client.post("/api/v1/recommendations/hybrid", json={"goodreads_user_id": ""}).status_code == 422
+
+
+def test_historical_ratings_keep_provenance_original_ids_and_pagination() -> None:
+    with TestClient(app_with_fake_engine()) as client:
+        body = {"goodreads_user_id": "u1", "limit": 20}
+        result = client.post("/api/v1/recommendations/history", json=body).json()
+        assert result["source"] == "goodreads_train" and result["total"] == result["positive_count"] == 1
+        assert result["data"][0]["goodreads_book_id"] == "00123"
+        assert result["data"][0]["rating"] == 5
+        assert client.post("/api/v1/recommendations/history", json={**body, "offset": 1}).json()["data"] == []
+        assert client.post("/api/v1/recommendations/history", json={**body, "goodreads_user_id": "missing"}).status_code == 404
+        assert client.post("/api/v1/recommendations/history", json={**body, "offset": -1}).status_code == 422
 
 
 def test_readiness_is_false_when_engine_initialization_fails() -> None:

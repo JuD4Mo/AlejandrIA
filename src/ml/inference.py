@@ -8,12 +8,14 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 import scipy.sparse as sp
 import torch
 from sklearn.preprocessing import normalize
 
 from .collaborative import MatrixFactorization
 from .recommendation import book_ids_for_indices, minmax_values, weighted_hybrid_score
+from .fold_in import fit_profile, model_info, recommend_profile
 
 
 class RecommendationEngine:
@@ -60,9 +62,29 @@ class RecommendationEngine:
         self.user_to_idx = self.user_mapping.set_index("user_id").user_idx.to_dict()
         self.metadata = self._metadata()
         self.metadata_by_book_id = self.metadata.set_index("book_id")
+        # Alineación por content_row, nunca por orden físico del Parquet.
+        work_ids = self.metadata_by_book_id.work_id.reindex(self.content_book_ids).astype("string").str.strip().replace("", pd.NA)
+        self.content_work_ids = work_ids.to_numpy(dtype=object, na_value=None)
+        self.fold_in_info = model_info(self)
+
+    def local_model_info(self) -> dict:
+        return dict(self.fold_in_info)
+
+    def fit_local_profile(self, ratings: list[dict]) -> dict:
+        return fit_profile(self, ratings)
+
+    def recommend_local_profile(self, profile: dict, k: int, exclude_book_ids: list[str]):
+        return recommend_profile(self, profile, k, exclude_book_ids)
 
     def _metadata(self) -> pd.DataFrame:
-        books = pd.read_parquet(self.processed_dir / "books.parquet")[["book_id", "title"]]
+        path = self.processed_dir / "books.parquet"
+        # Compatibilidad conservadora con artefactos antiguos sin identidad de obra.
+        columns = ["book_id", "title"]
+        if "work_id" in pq.read_schema(path).names:
+            columns.append("work_id")
+        books = pd.read_parquet(path, columns=columns)
+        if "work_id" not in books:
+            books["work_id"] = None
         authors = pd.read_parquet(self.processed_dir / "authors.parquet")[["author_id", "name"]]
         relations = pd.read_parquet(self.processed_dir / "book_authors.parquet")[["book_id", "author_id"]]
         genres = pd.read_parquet(self.processed_dir / "book_genres.parquet")[["book_id", "genre"]]
@@ -141,6 +163,19 @@ class RecommendationEngine:
         known, _ = self._user_history(user_idx)
         return np.setdiff1d(np.arange(len(self.book_mapping), dtype=np.int64), known, assume_unique=False)
 
+    def historical_ratings(self, user_id: str, limit: int = 20, offset: int = 0) -> tuple[pd.DataFrame, int, int]:
+        """Consulta solo train del perfil vinculado; nunca mezcla valid/test ni escribe ratings locales."""
+        if not 1 <= limit <= 100 or offset < 0:
+            raise ValueError("Paginación inválida para historial histórico.")
+        user_idx = self._user_idx(user_id)
+        history = pd.read_parquet(self.train_path, filters=[("user_idx", "==", user_idx)], columns=["book_idx", "rating"])
+        total, positives = len(history), int((history.rating >= 4).sum())
+        page = history.sort_values(["rating", "book_idx"], ascending=[False, True], kind="stable").iloc[offset:offset + limit]
+        ids = book_ids_for_indices(self.book_mapping, page.book_idx.to_numpy(dtype=np.int64))
+        result = self.metadata_by_book_id.reindex(ids)[["title", "authors", "genres"]].reset_index()
+        result["rating"] = page.rating.to_numpy()
+        return result, total, positives
+
     def _available_content_rows(self, user_idx: int) -> np.ndarray:
         """Devuelve filas de contenido no vistas, sin reconstruir mapeos desde disco."""
         known, _ = self._user_history(user_idx)
@@ -158,16 +193,34 @@ class RecommendationEngine:
         return self._enrich(candidates[top], scores[top], "collaborative")
 
     def recommend_similar(self, book_id: str, k: int = 10) -> pd.DataFrame:
+        """Descubre otras obras: excluye la obra semilla y selecciona una edición por obra conocida."""
         self._validate_k(k)
         if book_id not in self.book_id_to_content_row:
             raise KeyError(f"Libro desconocido: {book_id}")
         row = int(self.book_id_to_content_row[book_id])
         scores = (self.matrix[row] @ self.matrix.T).toarray().ravel()
-        scores[row] = -np.inf
-        top_rows = np.argsort(-scores)[:k]
+        eligible = np.isfinite(scores) & (scores > 0)
+        eligible[row] = False
+        seed_work = self.content_work_ids[row]
+        if seed_work is not None:
+            eligible &= self.content_work_ids != seed_work
+        candidates = np.flatnonzero(eligible)
+        ranked = candidates[np.argsort(-scores[candidates], kind="stable")]
+        selected = []
+        seen_works = set()
+        for candidate in ranked:
+            work_id = self.content_work_ids[candidate]
+            if work_id is not None and work_id in seen_works:
+                continue
+            selected.append(candidate)
+            if work_id is not None:
+                seen_works.add(work_id)
+            if len(selected) == k:
+                break
+        top_rows = np.asarray(selected, dtype=np.int64)
         return self._enrich_book_ids(self.content_book_ids[top_rows], scores[top_rows], "content_similar")
 
-    def recommend_hybrid(self, user_id: str, k: int = 10) -> pd.DataFrame:
+    def recommend_hybrid(self, user_id: str, k: int = 10, exclude_book_ids: list[str] | None = None) -> pd.DataFrame:
         """Recomienda solo en el universo colaborativo con la escala calibrada en validación.
 
         Los libros sin embedding no se mezclan aquí: sus scores de contenido no son
@@ -189,6 +242,10 @@ class RecommendationEngine:
             "availability": np.full(len(candidates), "collaborative_catalog"),
             "score_scope": np.full(len(candidates), "collaborative_catalog"),
         })
+        # Exposiciones locales no cambian la escala de fusión calibrada: se filtra
+        # después de calcular scores y antes del Top-K, no antes de normalizar.
+        if exclude_book_ids:
+            result = result.loc[~result.book_id.isin(exclude_book_ids)]
         return result.nlargest(k, "score", keep="all").head(k).reset_index(drop=True)
 
     def recommend_content_only(self, user_id: str, k: int = 10) -> pd.DataFrame:
@@ -210,7 +267,7 @@ class RecommendationEngine:
             "score_scope": np.full(len(top), "content_only_catalog"),
         })
 
-    def recommend_new_user(self, preferences: str | dict[str, list[str]], k: int = 10) -> pd.DataFrame:
+    def recommend_new_user(self, preferences: str | dict[str, list[str]], k: int = 10, exclude_book_ids: list[str] | None = None) -> pd.DataFrame:
         self._validate_k(k)
         if isinstance(preferences, dict):
             text = " ".join(value for values in preferences.values() for value in values)
@@ -219,5 +276,11 @@ class RecommendationEngine:
         if not text.strip():
             raise ValueError("Las preferencias del usuario nuevo no pueden estar vacías.")
         scores = (self.vectorizer.transform([text]) @ self.matrix.T).toarray().ravel()
-        top_rows = np.argsort(-scores)[:k]
+        # Excluir antes del Top-K permite recuperar coincidencias fuera de la primera tanda.
+        eligible = np.isfinite(scores) & (scores > 0)
+        if exclude_book_ids:
+            rows = self.book_id_to_content_row.reindex(exclude_book_ids).dropna().to_numpy(dtype=np.int64)
+            eligible[rows] = False
+        candidates = np.flatnonzero(eligible)
+        top_rows = candidates[np.argsort(-scores[candidates], kind="stable")[:k]]
         return self._enrich_book_ids(self.content_book_ids[top_rows], scores[top_rows], "content_cold_start")

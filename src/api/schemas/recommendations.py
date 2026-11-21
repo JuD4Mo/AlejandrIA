@@ -35,6 +35,39 @@ class Preferences(BaseModel):
 class PreferencesRequest(BaseModel):
     preferences: Preferences
     limit: int = Field(default=10, ge=1, le=50)
+    exclude_book_ids: list[str] = Field(default_factory=list, max_length=100_000)
+
+
+class HistoricalHybridRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    goodreads_user_id: str = Field(min_length=1, max_length=128)
+    limit: int = Field(default=10, ge=1, le=50)
+    exclude_book_ids: list[str] = Field(default_factory=list, max_length=100_000)
+
+
+class HistoricalRatingsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    goodreads_user_id: str = Field(min_length=1, max_length=128)
+    limit: int = Field(default=20, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
+
+
+class HistoricalRating(BaseModel):
+    goodreads_book_id: str
+    title: str | None = None
+    authors: list[str] = Field(default_factory=list)
+    genres: list[str] = Field(default_factory=list)
+    rating: int = Field(ge=1, le=5)
+
+
+class HistoricalRatingsResponse(BaseModel):
+    source: str = "goodreads_train"
+    model_version: str = "v2"
+    total: int
+    positive_count: int
+    limit: int
+    offset: int
+    data: list[HistoricalRating]
 
 
 class RecommendationItem(BaseModel):
@@ -62,6 +95,7 @@ class RecommendationItem(BaseModel):
 
 
 class RecommendationsResponse(BaseModel):
+    model_signature: str | None = None
     recommendation_type: str
     model_version: str
     count: int
