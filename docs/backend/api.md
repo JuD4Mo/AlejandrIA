@@ -2,6 +2,17 @@
 
 ## Identidad y permisos
 
+Desde la migración 011, las cuentas pueden llevar un vínculo operativo explícito
+a un [perfil histórico de prueba](perfiles_historicos_prueba.md). La identidad
+incluye `recommendation_profile` (`local` o `goodreads_test`); no cambia permisos.
+
+`GET /users/me/ratings/historical` (con prefijo `/api/v1`, lector/admin) muestra
+ratings de entrenamiento del perfil vinculado, de solo lectura. Admite `limit`
+1–100 y `offset`; responde `source: goodreads_train`, `model_version`, `total`,
+`positive_count`, `limit`, `offset` y `data`. Sin vínculo devuelve 409. Cada fila
+incluye `goodreads_book_id`, `local_book_id` nullable, título, autores, géneros y
+rating. El GET local `/users/me/ratings` conserva su contrato y datos separados.
+
 Roles persistidos: `lector`, `bibliotecario`, `administrador` (equivalentes a
 reader/librarian/admin). Registro solo asigna lector; no admite `roles` ni `user_id`.
 Contraseñas bcrypt coste 12, de 12 caracteres a 72 bytes. Login devuelve JWT HS256
@@ -31,6 +42,19 @@ La contraseña no tiene valor predeterminado. El comando se niega a crear un seg
 administrador; los posteriores se asignan mediante API autenticada.
 
 ## Endpoints
+
+Desde la migración 012, los cambios de ratings encolan fold-in local experimental.
+Las respuestas personales pueden añadir `profile_origin: local_fold_in` y `fold_in`
+(estado, conteos y revisiones), sin exponer parámetros. Pendientes/insuficientes
+usan contenido. Los GET no encolan ni entrenan. [Contrato y evaluación](fold_in_local.md).
+
+La sección «Libros similares» excluye la obra abierta y selecciona como máximo una
+edición por obra Goodreads identificada. Véase [similares por obra](similares_por_obra.md).
+
+La renovación personal añade `POST /api/v1/users/me/recommendations/refresh`
+con `current_book_ids` y `limit` en query. Requiere migración 010 y registra
+exposiciones por usuario; el GET de recomendaciones sigue siendo de solo lectura.
+Detalles: [renovación de recomendaciones](renovacion_recomendaciones.md).
 
 Todas las rutas siguientes llevan prefijo `/api/v1`. Las consultas de catálogo
 requieren autenticación. Personal = bibliotecario o administrador. Administrador

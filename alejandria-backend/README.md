@@ -41,7 +41,7 @@ docker compose exec -e PGDATABASE=prueba_migraciones backend /app/tern migrate -
 
 Tern registra versión, usa transacciones por migración y advisory locks. El arranque
 de API no migra. Salud comprueba proceso/conexión, no versión del esquema: aplicar
-migraciones hasta versión 9 antes de usar endpoints de negocio. Reversiones eliminan las tablas
+migraciones hasta versión 12 antes de usar endpoints de negocio. Reversiones eliminan las tablas
 de la versión y sus datos; nunca se ejecutan automáticamente.
 
 ## Ejecución Go fuera de Docker

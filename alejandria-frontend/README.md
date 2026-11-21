@@ -5,6 +5,24 @@ Tailwind v4, TanStack Query, React Router, Radix Dialog, react-hook-form + zod.
 
 ## Run
 
+### Docker Compose (desde la raíz del repositorio)
+
+Con .env configurado, artefactos V2 presentes y PostgreSQL migrado:
+
+```bash
+docker compose up -d --build --wait --wait-timeout 600
+```
+
+Abrir **http://127.0.0.1:3000** (`FRONTEND_PORT` permite cambiarlo). La imagen
+multietapa compila con Node 24 y sirve dist con Nginx. `/api/v1` se reenvía a Go
+por la red interna, conservando Authorization; las recargas de rutas SPA funcionan.
+No se necesitan instalaciones npm en el host para esta modalidad y no hay HMR.
+
+Primera instalación, migraciones explícitas, puertos y pruebas de orquestación:
+[docs/docker-compose.md](../docs/docker-compose.md).
+
+### Desarrollo con Vite
+
 ```bash
 npm install
 npm run dev          # http://localhost:5173
@@ -22,9 +40,23 @@ needed in development.
 | `npm test`          | Vitest (jsdom)                  |
 | `npm run build`     | Typecheck + production build    |
 
-For a production build served from another origin, the backend CORS
-configuration (`alejandria-backend/internal/middleware/global.go`) must allow
-that origin.
+Compose utiliza el mismo origen para UI y API mediante el proxy Nginx. No requiere
+habilitar CORS adicional para ese flujo.
+
+## Generar nuevas recomendaciones
+
+En Inicio, debajo de «Recomendaciones para ti», el botón **Generar nuevas
+recomendaciones** hace POST a `/api/v1/users/me/recommendations/refresh` enviando
+los IDs visibles, incluso si la caché sigue fresca. Muestra «Generando recomendaciones…»
+y se deshabilita mientras hay una petición activa. Los resultados previos permanecen
+visibles durante la consulta; ante errores transitorios se conservan con un aviso.
+
+El backend excluye libros valorados, prestados y las últimas 500 recomendaciones
+registradas por cuenta. El historial persiste en PostgreSQL (migración 010).
+La selección cambia por exclusiones, sin alterar scores ni reentrenar. Si no quedan
+coincidencias positivas se muestra el agotamiento, sin rellenar con libros arbitrarios.
+Sin intereses utilizables, Go indica que deben configurarse preferencias.
+Detalles: [renovación de recomendaciones](../docs/backend/renovacion_recomendaciones.md).
 
 ## Roles and routes
 

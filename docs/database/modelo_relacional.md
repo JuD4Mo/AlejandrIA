@@ -190,7 +190,7 @@ Desde raíz, copiar `.env.example` a `.env` y definir contraseña local:
 ```bash
 docker compose up -d --build
 docker compose exec backend /app/tern migrate
-docker compose exec backend /app/tern migrate  # no-op si versión 9
+docker compose exec backend /app/tern migrate  # no-op si versión 12
 curl --fail http://127.0.0.1:8080/health/ready
 docker compose stop
 docker compose start

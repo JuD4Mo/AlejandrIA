@@ -4,6 +4,21 @@ Proyecto académico de biblioteca inteligente con consolidación y EDA de Goodre
 
 ## Estado actual
 
+El inventario inicial de esta instalación registra 1–3 ejemplares normales por
+libro (1.861.535 en total): [carga e idempotencia](docs/database/inventario_inicial.md).
+
+### Levantar los cuatro servicios
+
+Con `.env` configurado, artefactos V2 existentes y la base ya migrada:
+
+```bash
+docker compose up -d --build --wait --wait-timeout 600
+```
+
+Interfaz: **http://127.0.0.1:3000**. Incluye frontend Nginx, backend Go, PostgreSQL y
+FastAPI CPU. La interfaz usa Go mediante `/api/v1` del mismo origen. Primera
+instalación y migraciones explícitas: [docs/docker-compose.md](docs/docker-compose.md).
+
 Implementado y validado:
 
 - Consolidación reproducible de Goodreads JSONL a Parquet, con auditoría de duplicados, referencias, procedencia multigénero y calidad de datos.
@@ -12,11 +27,12 @@ Implementado y validado:
 - Factorización matricial V2 ya entrenada: 688,730 usuarios, 566,739 libros con embedding y 32 factores latentes.
 - Índice TF-IDF V2 ya construido para 931,048 libros usando título, descripción, autores, géneros temáticos e idioma.
 - Recomendación colaborativa, por contenido, híbrida y para usuarios nuevos mediante `RecommendationEngine`.
-- Fusión híbrida calibrada solo con validación de catálogo completo; el peso activo de contenido es `0.30`.
+- Fusión híbrida histórica calibrada solo con validación de catálogo completo; su peso de contenido es `0.30`. El fold-in local tiene una política experimental separada.
 - Separación explícita entre el ranking híbrido del catálogo colaborativo y los libros `content_only` sin embedding colaborativo.
 - Evaluación reproducible, pruebas automatizadas, benchmark de memoria/latencia y notebooks académicos V2.
-- Backend Go con autenticación, roles, catálogo, inventario, circulación transaccional y personalización local; esquema versión 9 y pruebas con PostgreSQL real.
-- Integración Go → FastAPI V2 por preferencias y similitud, con correspondencias Goodreads exactas y disponibilidad bibliotecaria local.
+- Backend Go con autenticación, roles, catálogo, inventario, circulación transaccional y personalización local; esquema versión 12 y pruebas con PostgreSQL real.
+- Integración Go → FastAPI V2 por preferencias, similitud e híbrido para perfiles históricos de prueba, con correspondencias Goodreads exactas y disponibilidad bibliotecaria local.
+- Renovación sin repeticiones recientes por cuenta; [perfiles históricos de prueba](docs/backend/perfiles_historicos_prueba.md) diferenciados del [fold-in local automático experimental](docs/backend/fold_in_local.md).
 
 Pendiente antes de una integración de biblioteca:
 
@@ -30,7 +46,7 @@ Pendiente antes de una integración de biblioteca:
 La importación explícita desde Parquet ya cargó 931.046 libros Goodreads, sin crear
 ejemplares ni usuarios. Los registros bibliográficos se consultan y recomiendan;
 solicitudes y reservas requieren inventario físico registrado. PostgreSQL está en
-versión 9 con índices de búsqueda y filtros. Mapeos, calidad, métricas y comandos:
+versión 12, incluidos índices de búsqueda, exposiciones, vínculos de prueba y perfiles/cola fold-in. Mapeos, calidad, métricas y comandos:
 [docs/database/importacion_goodreads.md](docs/database/importacion_goodreads.md).
 
 Validación integral ejecutada, evidencia y riesgos pendientes:
