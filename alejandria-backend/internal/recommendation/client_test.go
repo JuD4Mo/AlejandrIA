@@ -112,3 +112,36 @@ func TestClientRejectsMalformedJSONAndRedirects(t *testing.T) {
 		})
 	}
 }
+
+func TestHybridClientRequiresBothRealScoreComponents(t *testing.T) {
+	for _, missing := range []bool{false, true} {
+		t.Run(map[bool]string{false: "valid", true: "missing collaborative score"}[missing], func(t *testing.T) {
+			s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "POST" || r.URL.Path != "/api/v1/recommendations/hybrid" {
+					t.Error("wrong historical operation")
+				}
+				var request HybridRequest
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Error(err)
+				}
+				if request.GoodreadsUserID != "000historical" || len(request.ExcludeBookIDs) != 1 {
+					t.Error("historical identity or exclusions changed")
+				}
+				score, content, collab := 0.8, 0.5, 4.2
+				item := UpstreamItem{BookID: "00123", Model: "hybrid", ScoreScope: "collaborative_catalog", Score: &score, ContentScore: &content, CollaborativeScore: &collab}
+				if missing {
+					item.CollaborativeScore = nil
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(UpstreamResponse{RecommendationType: "hybrid", ModelVersion: "v2", Count: 1, Recommendations: []UpstreamItem{item}})
+			}))
+			defer s.Close()
+			_, err := NewClient(s.URL, time.Second).Hybrid(context.Background(), "000historical", 1, []string{"excluded"})
+			if missing {
+				errorStatus(t, err, 502)
+			} else if err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}

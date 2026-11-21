@@ -11,11 +11,11 @@ type Repository struct{ pool *pgxpool.Pool }
 
 func NewRepository(p *pgxpool.Pool) *Repository { return &Repository{p} }
 
-const userSelect = `SELECT u.id,u.email,u.display_name,u.password_hash,u.is_active,u.created_at,COALESCE((SELECT array_agg(r.name ORDER BY r.name) FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=u.id),'{}') FROM users u `
+const userSelect = `SELECT u.id,u.email,u.display_name,u.password_hash,u.is_active,u.created_at,COALESCE((SELECT array_agg(r.name ORDER BY r.name) FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=u.id),'{}'), CASE WHEN EXISTS(SELECT 1 FROM user_goodreads_test_profiles p WHERE p.user_id=u.id) THEN 'goodreads_test' ELSE 'local' END FROM users u `
 
 func scanUser(row pgx.Row) (User, error) {
 	var u User
-	e := row.Scan(&u.ID, &u.Email, &u.DisplayName, &u.PasswordHash, &u.Active, &u.CreatedAt, &u.Roles)
+	e := row.Scan(&u.ID, &u.Email, &u.DisplayName, &u.PasswordHash, &u.Active, &u.CreatedAt, &u.Roles, &u.RecommendationProfile)
 	return u, e
 }
 func (r *Repository) ByID(ctx context.Context, id int64) (User, error) {

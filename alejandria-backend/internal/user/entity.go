@@ -8,13 +8,14 @@ import (
 )
 
 type User struct {
-	ID           int64     `json:"id"`
-	Email        string    `json:"email"`
-	DisplayName  string    `json:"display_name"`
-	Active       bool      `json:"is_active"`
-	Roles        []string  `json:"roles"`
-	CreatedAt    time.Time `json:"created_at"`
-	PasswordHash string    `json:"-"`
+	ID                    int64     `json:"id"`
+	Email                 string    `json:"email"`
+	DisplayName           string    `json:"display_name"`
+	Active                bool      `json:"is_active"`
+	Roles                 []string  `json:"roles"`
+	CreatedAt             time.Time `json:"created_at"`
+	PasswordHash          string    `json:"-"`
+	RecommendationProfile string    `json:"recommendation_profile"`
 }
 
 func (u User) HasRole(names ...string) bool {

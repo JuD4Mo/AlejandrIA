@@ -34,7 +34,9 @@ func TestRecommendationHTTPWithLocalDatabase(t *testing.T) {
 	b2, c2 := f.newBook(t)
 	_, e = f.pool.Exec(f.ctx, `UPDATE books SET goodreads_book_id=$2 WHERE id=$1`, b2, secondID)
 	must(t, e)
-	f.loan(t, f.b, b2, c2)
+	_ = c2
+	_, e = f.s.Reserve(f.ctx, f.b, b2)
+	must(t, e)
 	c := catalog.NewService(catalog.NewRepository(f.pool))
 	zeroBook, e := c.SaveBook(f.ctx, 0, catalog.BookInput{Title: "No copies", GoodreadsBookID: &zeroID})
 	must(t, e)
@@ -123,7 +125,10 @@ func TestRecommendationHTTPWithLocalDatabase(t *testing.T) {
 		t.Fatal("empty reader caused inference")
 	}
 	must(t, personal.ReplacePreferences(f.ctx, f.a, personalization.GenreSelection{GenreIDs: []int64{genre}}))
-	_, e = personal.PutRating(f.ctx, f.a, f.book, personalization.RatingInput{Rating: 5})
+	profileBook, _ := f.newBook(t)
+	_, e = f.pool.Exec(f.ctx, `UPDATE books SET goodreads_book_id=$2 WHERE id=$1`, profileBook, uuid.NewString())
+	must(t, e)
+	_, e = personal.PutRating(f.ctx, f.a, profileBook, personalization.RatingInput{Rating: 5})
 	must(t, e)
 	out := get("/users/me/recommendations?limit=4", token, 200)
 	rows := out["recommendations"].([]any)
@@ -164,4 +169,50 @@ func TestRecommendationHTTPWithLocalDatabase(t *testing.T) {
 	staffToken, e := identity.Login(f.ctx, user.Login{Email: staffOnly.Email, Password: "a-long-password"})
 	must(t, e)
 	get("/users/me/recommendations", staffToken, 403)
+	mode.Store(0)
+	post := func(auth string, payload string, want int) map[string]any {
+		t.Helper()
+		req, err := http.NewRequest("POST", api.URL+"/api/v1/users/me/recommendations/refresh?limit=4", strings.NewReader(payload))
+		must(t, err)
+		req.Header.Set("Content-Type", "application/json")
+		if auth != "" {
+			req.Header.Set("Authorization", "Bearer "+auth)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		must(t, err)
+		defer resp.Body.Close()
+		var result map[string]any
+		must(t, json.NewDecoder(resp.Body).Decode(&result))
+		if resp.StatusCode != want {
+			t.Fatalf("refresh got %d: %v", resp.StatusCode, result)
+		}
+		return result
+	}
+	post("", `{}`, 401)
+	post(staffToken, `{}`, 403)
+	post(token, `{"current_book_ids":[""]}`, 400)
+	payload, e := json.Marshal(map[string]any{"current_book_ids": []string{firstID}})
+	must(t, e)
+	fresh := post(token, string(payload), 200)
+	newRows := fresh["recommendations"].([]any)
+	if len(newRows) != 3 {
+		t.Fatalf("expected three unseen candidates, got %v", fresh)
+	}
+	for _, row := range newRows {
+		if row.(map[string]any)["goodreads_book_id"] == firstID {
+			t.Fatal("visible book repeated")
+		}
+	}
+	var beforeCount, afterCount int
+	must(t, f.pool.QueryRow(f.ctx, `SELECT count(*) FROM recommendation_exposures WHERE user_id=$1`, f.a.ID).Scan(&beforeCount))
+	// Incluso otro GET ve el historial persistente y no escribe exposiciones.
+	get("/users/me/recommendations", token, 200)
+	must(t, f.pool.QueryRow(f.ctx, `SELECT count(*) FROM recommendation_exposures WHERE user_id=$1`, f.a.ID).Scan(&afterCount))
+	if beforeCount != 4 || beforeCount != afterCount {
+		t.Fatal("GET wrote exposure history")
+	}
+	exhausted := post(token, `{}`, 200)
+	if exhausted["status"] != "no_content_matches" || exhausted["count"] != float64(0) {
+		t.Fatalf("exhaustion not explicit: %v", exhausted)
+	}
 }

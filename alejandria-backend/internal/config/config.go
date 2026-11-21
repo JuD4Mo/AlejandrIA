@@ -19,8 +19,9 @@ type Config struct {
 }
 
 type RecommendationConfig struct {
-	URL     string        `conf:"default:http://recommendations:8000"`
-	Timeout time.Duration `conf:"default:8s"`
+	FoldInEnabled bool          `conf:"default:true"`
+	URL           string        `conf:"default:http://recommendations:8000"`
+	Timeout       time.Duration `conf:"default:8s"`
 }
 
 type AuthConfig struct {

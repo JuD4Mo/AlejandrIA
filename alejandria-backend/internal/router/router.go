@@ -51,7 +51,7 @@ func NewRouter(s *server.Server) *chi.Mux {
 	inventoryService := inventory.NewService(inventory.NewRepository(s.DB.Pool))
 	i := inventory.NewController(inventoryService)
 	l := circulation.NewController(circulationService)
-	recommendations := recommendation.NewController(recommendation.NewService(recommendation.NewClient(s.Config.Recommendation.URL, s.Config.Recommendation.Timeout), catalogService, personalizationService, inventoryService))
+	recommendations := recommendation.NewController(recommendation.NewService(recommendation.NewClient(s.Config.Recommendation.URL, s.Config.Recommendation.Timeout), catalogService, personalizationService, inventoryService, recommendation.NewRepository(s.DB.Pool)).WithFoldIn(s.Config.Recommendation.FoldInEnabled))
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Post("/auth/register", u.Register)
 		r.Post("/auth/login", u.Login)
@@ -76,11 +76,13 @@ func NewRouter(s *server.Server) *chi.Mux {
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.Roles("lector", "administrador"))
 				r.Get("/users/me/recommendations", recommendations.ForReader)
+				r.Post("/users/me/recommendations/refresh", recommendations.Refresh)
 				r.Get("/users/me/preferences/genres", p.Preferences)
 				r.Put("/users/me/preferences/genres", p.ReplacePreferences)
 				r.Delete("/users/me/preferences/genres", p.ClearPreferences)
 				r.Delete("/users/me/preferences/genres/{genreID}", p.DeletePreference)
 				r.Get("/users/me/ratings", p.Ratings)
+				r.Get("/users/me/ratings/historical", recommendations.History)
 				r.Put("/users/me/ratings/{bookID}", p.PutRating)
 				r.Delete("/users/me/ratings/{bookID}", p.DeleteRating)
 				r.Get("/users/me/interactions", p.Interactions)

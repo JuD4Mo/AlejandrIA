@@ -13,6 +13,7 @@ import (
 	"github.com/JuD4Mo/alejandria-backend/internal/circulation"
 	"github.com/JuD4Mo/alejandria-backend/internal/config"
 	"github.com/JuD4Mo/alejandria-backend/internal/logger"
+	"github.com/JuD4Mo/alejandria-backend/internal/recommendation"
 	"github.com/JuD4Mo/alejandria-backend/internal/router"
 	"github.com/JuD4Mo/alejandria-backend/internal/server"
 )
@@ -39,6 +40,13 @@ func main() {
 		defer close(workerDone)
 		circulation.NewService(circulation.NewRepository(srv.DB.Pool)).Run(workerCtx, &appLogger)
 	}()
+	foldInDone := make(chan struct{})
+	go func() {
+		defer close(foldInDone)
+		if cfg.Recommendation.FoldInEnabled {
+			recommendation.NewFoldInWorker(recommendation.NewRepository(srv.DB.Pool), recommendation.NewClient(cfg.Recommendation.URL, cfg.Recommendation.Timeout)).Run(workerCtx, &appLogger)
+		}
+	}()
 
 	serverErrors := make(chan error, 1)
 	go func() { serverErrors <- srv.Start() }()
@@ -56,6 +64,7 @@ func main() {
 	appLogger.Info().Msg("shutting down server...")
 	stopWorker()
 	<-workerDone
+	<-foldInDone
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

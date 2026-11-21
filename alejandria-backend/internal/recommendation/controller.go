@@ -3,6 +3,7 @@ package recommendation
 import (
 	"github.com/JuD4Mo/alejandria-backend/internal/errs"
 	"github.com/JuD4Mo/alejandria-backend/internal/user"
+	"github.com/JuD4Mo/alejandria-backend/internal/validation"
 	"github.com/JuD4Mo/alejandria-backend/internal/web"
 	"net/http"
 	"strconv"
@@ -52,4 +53,37 @@ func (c *Controller) Similar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	web.JSON(w, 200, out)
+}
+
+func (c *Controller) Refresh(w http.ResponseWriter, r *http.Request) {
+	limit, err := resultLimit(r)
+	if err != nil {
+		web.Fail(w, r, err)
+		return
+	}
+	var input RefreshRequest
+	if err = validation.BindAndValidate(r, &input); err != nil {
+		web.Fail(w, r, err)
+		return
+	}
+	out, err := c.service.Refresh(r.Context(), user.Identity(r.Context()), limit, input.CurrentBookIDs)
+	if err != nil {
+		web.Fail(w, r, err)
+		return
+	}
+	web.JSON(w, http.StatusOK, out)
+}
+
+func (c *Controller) History(w http.ResponseWriter, r *http.Request) {
+	p, err := web.Pagination(r)
+	if err != nil {
+		web.Fail(w, r, err)
+		return
+	}
+	out, err := c.service.History(r.Context(), user.Identity(r.Context()), p.Limit, p.Offset)
+	if err != nil {
+		web.Fail(w, r, err)
+		return
+	}
+	web.JSON(w, http.StatusOK, out)
 }
